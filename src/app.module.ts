@@ -15,10 +15,10 @@ import { MailModule } from './common/mail/mail.module';
   imports: [ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'containers-us-west-XX.railway.app',
+      host: 'mysql.railway.internal',
       port: 3306,
-      username: 'railway',
-      password: 'your_railway_password',
+      username: 'root',
+      password: 'uLlGlvGUbVTEIGTKeleDvLnhJNONWJDZ',
       database: 'railway',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
