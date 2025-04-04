@@ -18,7 +18,7 @@ import { MailModule } from './common/mail/mail.module';
       host: 'mysql.railway.internal',
       port: 3306,
       username: 'root',
-      password: 'uLlGlvGUbVTEIGTKeleDvLnhJNONWJDZ',
+      password: 'yvKOdIyslhrSNyALWVwIQRKsgadjEQwn',
       database: 'railway',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
