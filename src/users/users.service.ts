@@ -14,6 +14,8 @@ export class UsersService {
         private readonly entityManager: EntityManager,
       ) {}
 
+      
+
      async create(createUserDto: CreateUserDto): Promise<User> {
     const existingUser = await this.entityManager.findOne(User, {
       where: { email: createUserDto.email },

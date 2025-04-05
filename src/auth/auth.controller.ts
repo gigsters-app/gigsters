@@ -5,10 +5,21 @@ import { SignInDto } from './DTOs/signin.dto';
 import { Public } from './decorators/public.decorator';
 import { ForgotPasswordDto } from './DTOs/forgot-password.dto';
 import { ResetPasswordDto } from './DTOs/reset-password.dto';
+import { RegisterUserDto } from 'src/users/DTOs/register-user.dto';
+import { User } from 'src/users/user.entity';
+import { UsersService } from 'src/users/users.service';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) {}
+    constructor(private authService: AuthService, private readonly userService: UsersService) {}
+
+    // @Post('register')
+    // @ApiOperation({ summary: 'Register new user with business profile' })
+    // @ApiResponse({ status: 201, description: 'User registered', type: User })
+    // async register(@Body() dto: RegisterUserDto) {
+    //   return this.userService.registerUserWithBusinessProfile(dto);
+    // }
+
 
   @HttpCode(HttpStatus.OK)
   @Public()

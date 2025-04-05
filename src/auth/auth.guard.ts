@@ -33,7 +33,8 @@ import { IS_PUBLIC_KEY } from './decorators/public.decorator';
         const payload = await this.jwtService.verifyAsync(
           token,
           {
-            secret: this.configService.get<string>('JWT_SECRET'),
+            // secret: this.configService.get<string>('JWT_SECRET'),
+            secret:"secret",
           }
         );
         // 💡 We're assigning the payload to the request object here
