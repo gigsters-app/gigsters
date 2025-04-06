@@ -4,6 +4,7 @@ import { RolesService } from './roles.service';
 import { CreateRoleDto } from './DTOs/create-role.dto';
 import { UpdateRoleDto } from './DTOs/update-role';
 import { Claims } from 'src/claims/claims.decorator';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @ApiBearerAuth('access-token') // name must match the one in addBearerAuth
 @ApiTags('Roles')
@@ -11,6 +12,7 @@ import { Claims } from 'src/claims/claims.decorator';
 export class RolesController {
     constructor(private readonly rolesService: RolesService) {}
 
+    @Public()
     @Post()
     @ApiOperation({ summary: 'Create a new role' })
     @Claims('roles:create')
