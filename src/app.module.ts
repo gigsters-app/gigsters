@@ -16,27 +16,27 @@ import { AuthGuard } from './auth/auth.guard';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }),
-    // TypeOrmModule.forRoot({
-    //   type: 'mysql',
-    //   host: 'mysql.railway.internal',
-    //   port: 3306,
-    //   username: 'root',
-    //   password: 'yvKOdIyslhrSNyALWVwIQRKsgadjEQwn',
-    //   database: 'railway',
-    //   entities: [__dirname + '/**/*.entity{.ts,.js}'],
-    //   synchronize: true,
-    // }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
+      host: 'mysql.railway.internal',
       port: 3306,
       username: 'root',
-      password: '',
-      database: 'project-gigsters',
-      
+      password: 'yvKOdIyslhrSNyALWVwIQRKsgadjEQwn',
+      database: 'railway',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
+    // TypeOrmModule.forRoot({
+    //   type: 'mysql',
+    //   host: 'localhost',
+    //   port: 3306,
+    //   username: 'root',
+    //   password: '',
+    //   database: 'project-gigsters',
+      
+    //   entities: [__dirname + '/**/*.entity{.ts,.js}'],
+    //   synchronize: true,
+    // }),
     AuthModule,
     UsersModule,
     RolesModule,
