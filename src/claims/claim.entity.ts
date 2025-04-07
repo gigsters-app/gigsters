@@ -26,7 +26,7 @@ export class Claim {
     example: 'Allows a user to create other users',
     description: 'A brief description of what this claim allows',
   })
-  @Column()
+  @Column({nullable: true})
   description: string; // 👈 Mandatory field
 
   @ApiProperty()
