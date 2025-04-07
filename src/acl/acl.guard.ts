@@ -28,7 +28,7 @@ export class AclGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    console.log(user);
+    
     if (!user) {
       throw new ForbiddenException('User not found');
     }

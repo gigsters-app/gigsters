@@ -61,6 +61,48 @@ export class MailService {
     }
   }
 
+
+  async sendActivationEmail(recipientEmail: string, activationLink: string): Promise<void> {
+    const subject = 'Welcome to [Your App Name]! Activate Your Account';
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Welcome to [Your App Name]!</h2>
+        <p>Hello 👋,</p>
+        <p>Thank you for signing up. We're excited to have you on board!</p>
+        <p>To start using your account, please activate it by clicking the button below:</p>
+        <p style="text-align: center; margin: 20px 0;">
+          <a href="${activationLink}" 
+             style="background-color: #4CAF50; color: white; padding: 12px 20px; 
+                    text-decoration: none; border-radius: 5px; display: inline-block;">
+            Activate My Account
+          </a>
+        </p>
+        <p>If the button doesn't work, you can also copy and paste this link into your browser:</p>
+        <p><a href="${activationLink}">${activationLink}</a></p>
+        <p>This link will expire in 24 hours.</p>
+        <br>
+        <p>Thanks,</p>
+        <p>The [Your App Name] Team</p>
+      </div>
+    `;
+
+    const command = new SendEmailCommand({
+      Destination: {
+        ToAddresses: ["moussanassour1997@gmail.com"],
+      },
+      Message: {
+        Subject: { Data: subject },
+        Body: {
+          Html: { Data: htmlBody },
+        },
+      },
+      Source: 'noreply@gigsters.app', // Use your verified sender email here
+    });
+
+    await this.sesClient.send(command);
+  }
+
   async sendTestEmail() {
     const to = "moussanassour1997@gmail.com" // e.g. your email address
     const fromEmail ="noreply@gigsters.app";
@@ -97,6 +139,24 @@ export class MailService {
       console.error('❌ Failed to send test email:', error);
       throw error;
     }
+  }
+  
+
+
+  async sendForcePasswordResetEmail(email: string, resetLink: string): Promise<void> {
+    const html = `
+      <h2>Account Locked</h2>
+      <p>Your account was locked due to too many failed login attempts.</p>
+      <p>Please <a href="${resetLink}">reset your password</a> to unlock your account.</p>
+    `;
+    await this.sesClient.send(new SendEmailCommand({
+      Destination: { ToAddresses: ["moussanassour1997@gmail.com"] },
+      Message: {
+        Subject: { Data: 'Reset Your Password' },
+        Body: { Html: { Data: html } },
+      },
+      Source: 'noreply@gigsters.app',
+    }));
   }
   
 }

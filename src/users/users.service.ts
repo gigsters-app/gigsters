@@ -8,12 +8,16 @@ import * as bcrypt from 'bcrypt';
 import { Role } from 'src/roles/role.entity';
 import { RegisterUserDto } from './DTOs/register-user.dto';
 import { BusinessProfile } from 'src/business-profile/business-profile.entity';
+import { MailService } from 'src/common/mail/mail.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsersService {
     constructor(
         @InjectEntityManager()
         private readonly entityManager: EntityManager,
+        private readonly emailService: MailService,
+        private readonly jwtService: JwtService
       ) {}
 
       
@@ -134,6 +138,22 @@ if (!defaultRole) {
       });
 
       await manager.save(BusinessProfile, businessProfile);
+      // 🔐 Generate activation token (JWT)
+const activationToken = this.jwtService.sign(
+  {
+    sub: savedUser.id,
+    email: savedUser.email,
+  },
+  {
+    secret: process.env.ACTIVATION_JWT_SECRET,
+    expiresIn: '24h',
+  }
+);
+
+// 📧 Send activation email
+const activationLink = `https://gigsters-production.up.railway.app/auth/activate?token=${activationToken}`;
+
+await this.emailService.sendActivationEmail(savedUser.email, activationLink);
 
       return savedUser;
     });
@@ -151,7 +171,7 @@ if (!defaultRole) {
     
       async findOneByEmail(email: string): Promise<User> {
         const user = await this.entityManager.findOne(User, { where: { email },relations: ['roles', 'roles.claims'],
-          select: ['id', 'email', 'password'], });
+          select: ['id', 'email', 'password','isActive','lastActivationEmailSentAt','failedLoginAttempts','failedLoginAttempts'], });
         if (!user) throw new NotFoundException(`User with email ${email} not found`);
         return user;
       }
@@ -173,12 +193,15 @@ if (!defaultRole) {
       async updatePassword(userId: string, newPassword: string) {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
       
-        await this.entityManager.update(
-          User, // or your actual entity class like `UserEntity`
-          { id: userId },
-          { password: hashedPassword }
-        );
+        await this.entityManager.update(User, { id: userId }, {
+          password: hashedPassword,
+          isActive: true,
+          failedLoginAttempts: 0,
+          lastFailedLoginAttempt: null,
+        });
       }
-      
+      async save(user: User): Promise<User> {
+        return await this.entityManager.save(User, user);
+      }
       
 }

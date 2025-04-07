@@ -10,19 +10,20 @@ import { Public } from 'src/auth/decorators/public.decorator';
 @Controller('acl')
 export class AclController {
     constructor(private readonly aclService: AclService) {}
+
     @Public()
-    @Patch('users/:userId/roles')
+    @Patch('users/:userId/role')
     @Claims('acl:assign-roles')
   async assignRolesToUser(
     @Param('userId') userId: string,
-    @Body() { roles }: AssignRolesDto,
+    @Body() { role }: AssignRolesDto,
   ) {
     // Call the service method to assign roles
-    const updatedUser = await this.aclService.assignRolesToUser(userId, roles);
+    const updatedUser = await this.aclService.assignRoleToUser(userId, role);
 
     // Return something meaningful to the caller
     return {
-      message: `Assigned roles [${roles.join(', ')}] to user ID: ${userId}`,
+      message: `Assigned role "${role}" to user ID: ${userId}`,
       user: updatedUser,
     };
   }

@@ -58,9 +58,19 @@ import { BusinessProfile } from 'src/business-profile/business-profile.entity';
       description: 'Indicates if the user account is active',
       default: true,
     })
-    @Column({ default: true })
+    @Column({ default: false })
     isActive: boolean;
   
+    @Column({ type: 'timestamp', nullable: true })
+@ApiProperty({
+  type: String,
+  format: 'date-time',
+  required: false,
+  description: 'The timestamp of the last activation email sent to the user',
+  example: '2025-04-07T12:34:56.789Z',
+})
+lastActivationEmailSentAt: Date;
+
     @ApiProperty({
       description: 'Timestamp when the user was created',
       type: String,
@@ -76,7 +86,13 @@ import { BusinessProfile } from 'src/business-profile/business-profile.entity';
     })
     @UpdateDateColumn({ type: 'timestamp' })
     updatedAt: Date;
-  
+
+    @Column({ type: 'int', default: 0 })
+    failedLoginAttempts: number;
+    
+    @Column({ type: 'timestamp', nullable: true })
+    lastFailedLoginAttempt: Date | null;
+
     @ApiProperty({
       description: 'Timestamp marking when the user was soft deleted',
       type: String,

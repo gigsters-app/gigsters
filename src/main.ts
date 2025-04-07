@@ -2,9 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
-
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+import * as hbs from 'hbs';
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // ✅ Enable CORS here
   app.enableCors({
@@ -14,7 +16,10 @@ async function bootstrap() {
 
   setupSwagger(app);
   setupGlobalPipes(app);
-  
+   // Serve static assets from the "public" folder
+   app.setViewEngine('hbs');
+   app.setBaseViewsDir(join(__dirname, '..', 'views'));
+   hbs.registerPartials(join(__dirname, '..', 'views', 'partials')); // optional, for layouts
   const port = process.env.PORT ?? 3000;
 
   await app.listen(port);

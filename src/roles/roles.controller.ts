@@ -12,7 +12,7 @@ import { Public } from 'src/auth/decorators/public.decorator';
 export class RolesController {
     constructor(private readonly rolesService: RolesService) {}
 
-    @Public()
+    
     @Post()
     @ApiOperation({ summary: 'Create a new role' })
     @Claims('roles:create')

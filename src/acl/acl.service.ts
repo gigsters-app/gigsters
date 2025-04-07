@@ -12,54 +12,57 @@ export class AclService {
   /**
    * Assign (overwrite) one or more roles to a user by role name(s).
    */
-  async assignRolesToUser(userId: string, roleNames: string[]): Promise<User> {
-    // 1. Find the user, including current roles
+  async assignRoleToUser(userId: string, roleName: string): Promise<User> {
+    // 1. Find the user with current roles
     const user = await this.entityManager.findOne(User, {
       where: { id: userId },
       relations: ['roles'],
     });
+  
     if (!user) {
       throw new NotFoundException(`User with ID "${userId}" not found`);
     }
   
-    // 2. Find the roles (by name) to assign
-    const roles = await this.entityManager.find(Role, {
-      where: { name: In(roleNames) },
+    // 2. Find the role by name
+    const role = await this.entityManager.findOne(Role, {
+      where: { name: roleName },
     });
-    if (!roles.length) {
-      throw new NotFoundException(
-        `No matching roles found for: ${roleNames.join(', ')}`,
-      );
+  
+    if (!role) {
+      throw new NotFoundException(`Role "${roleName}" not found`);
     }
   
-    // 3. **Overwrite** the user's roles with these new roles
-    //    (this removes old roles from the user_roles table)
-    user.roles = roles;
+    // 3. Overwrite the user's roles with the single role
+    user.roles = [role];
   
-    // 4. Save (automatically updates the user_roles join table)
+    // 4. Save and return updated user
     return this.entityManager.save(user);
   }
+  
 
 
   async assignClaims(roleId: string, claimIds: string[]): Promise<Role> {
-    const role = await this.entityManager.findOne(Role, { where: { id: roleId }, relations: ['claims'] });
-    if (!role) throw new NotFoundException(`Role not found`);
-
-    const claimsToAdd = await this.entityManager.find(Claim, { where: { id: In(claimIds) } });
-    
-    if (claimsToAdd.length === 0) {
+    const role = await this.entityManager.findOne(Role, {
+      where: { id: roleId },
+      relations: ['claims'],
+    });
+  
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+  
+    const claimsToAssign = await this.entityManager.find(Claim, {
+      where: { id: In(claimIds) },
+    });
+  
+    if (claimsToAssign.length === 0) {
       throw new NotFoundException('No valid claims found to assign');
     }
-
-    // Prevent duplication:
-    const existingClaimIds = new Set(role.claims.map(c => c.id));
-
-    for (const claim of claimsToAdd) {
-      if (!existingClaimIds.has(claim.id)) {
-        role.claims.push(claim); // Only add if not already associated
-      }
-    }
-
-    return this.entityManager.save(role);
+  
+    // ✅ Overwrite the claims directly
+    role.claims = claimsToAssign;
+  
+    return await this.entityManager.save(role);
   }
+  
 }
