@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import { BusinessProfile } from './business-profile.entity';
@@ -12,8 +12,18 @@ export class BusinessProfileService {
   constructor(@InjectEntityManager() private em: EntityManager) {}
 
   async create(dto: CreateBusinessProfileDto): Promise<BusinessProfile> {
-    const profile = this.em.create(BusinessProfile, dto);
-    return this.em.save(profile);
+    const user = await this.em.findOne(User, { where: { id: dto.userId } });
+  
+    if (!user) {
+      throw new NotFoundException('Cannot create business profile: user not found.');
+    }
+  
+    try {
+      const profile = this.em.create(BusinessProfile, dto);
+      return await this.em.save(profile);
+    } catch (err) {
+      throw new BadRequestException('Failed to create business profile. Please check the provided data.');
+    }
   }
 
   async register(dto: CreateBusinessProfileDto, user: User): Promise<BusinessProfile> {
