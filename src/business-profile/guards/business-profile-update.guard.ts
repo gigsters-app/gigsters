@@ -21,9 +21,16 @@ import {
       }
     
       // ✅ Check for superadmin role or global claim
-      
-      const isSuperadmin = user.roles?.includes('superadmin'); // ← works for string arrays
-      const allClaims = user.roles.flatMap((r) => r.claims.map((c) => c.name));
+      const isSuperadmin = Array.isArray(user.roles)
+        ? user.roles.includes('superadmin') || user.roles.some((r: any) => r.name === 'superadmin')
+        : false;
+    
+      const allClaims = Array.isArray(user.roles)
+        ? user.roles.flatMap((r: any) =>
+            Array.isArray(r.claims) ? r.claims.map((c: any) => c.name) : []
+          )
+        : [];
+    
       const hasClaim = allClaims.includes('business-profile:update:any');
       if (isSuperadmin || hasClaim) {
         return true;
