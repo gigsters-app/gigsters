@@ -13,6 +13,13 @@ import { MailModule } from './common/mail/mail.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AclGuard } from './acl/acl.guard';
 import { AuthGuard } from './auth/auth.guard';
+import { InvoiceModule } from './invoice/invoice.module';
+import { BusinessItemModule } from './business-item/business-item.module';
+import { ClientModule } from './client/client.module';
+import { InvoiceItemModule } from './invoice-item/invoice-item.module';
+import { QuotationItemModule } from './quotation-item/quotation-item.module';
+import { QuotationModule } from './quotation/quotation.module';
+
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }),
@@ -26,6 +33,7 @@ import { AuthGuard } from './auth/auth.guard';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
+
     // TypeOrmModule.forRoot({
     //   type: 'mysql',
     //   host: 'localhost',
@@ -33,7 +41,6 @@ import { AuthGuard } from './auth/auth.guard';
     //   username: 'root',
     //   password: '',
     //   database: 'project-gigsters',
-      
     //   entities: [__dirname + '/**/*.entity{.ts,.js}'],
     //   synchronize: true,
     // }),
@@ -44,6 +51,13 @@ import { AuthGuard } from './auth/auth.guard';
     ClaimsModule,
     BusinessProfileModule,
     MailModule,
+    InvoiceModule,
+    BusinessItemModule,
+    ClientModule,
+    InvoiceItemModule,
+    QuotationModule,
+    QuotationItemModule,
+    
   ],
   controllers: [AppController],
   providers: [AppService, 

@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Param, Post, Query, Render } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBody, ApiCreatedResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SignInDto } from './DTOs/signin.dto';
 import { Public } from './decorators/public.decorator';
 import { RegisterUserDto } from 'src/users/DTOs/register-user.dto';
@@ -9,6 +9,8 @@ import { UsersService } from 'src/users/users.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from 'src/common/mail/mail.service';
+import { RegisterDto } from 'src/users/DTOs/register.dto';
+import { CreateUserDto } from 'src/users/DTOs/create-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -16,8 +18,24 @@ export class AuthController {
       private readonly jwtService: JwtService,
       private readonly mailService: MailService,) {}
 
+      @Public()
+      @Post('register')
+      @ApiOperation({ summary: 'Register a new user with email & password' })
+      @ApiBody({ type: RegisterDto, description: 'Email and password for the new account' })
+      @ApiCreatedResponse({
+        description: 'User account created successfully',
+        type: CreateUserDto,
+      })
+      @ApiBadRequestResponse({
+        description: 'Validation or uniqueness error',
+      })
+      registerBasic(@Body() dto: RegisterDto): Promise<CreateUserDto> {
+        return this.userService.registerBasicUser(dto);
+      }
+    
+
     @Public()
-    @Post('register')
+    @Post('register-with-business-profile')
     @ApiOperation({ summary: 'Register new user with business profile' })
     @ApiResponse({ status: 201, description: 'User registered', type: User })
     async register(@Body() dto: RegisterUserDto) {

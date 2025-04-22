@@ -5,9 +5,14 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     ManyToOne,
+    OneToMany,
   } from 'typeorm';
   import { ApiProperty } from '@nestjs/swagger';
 import { User } from 'src/users/user.entity';
+import { BusinessItem } from 'src/business-item/business-item.entity';
+import { Client } from 'src/client/client.entity';
+import { Invoice } from 'src/invoice/invoice.entity';
+import { Quotation } from 'src/quotation/quotation.entity';
   
   @Entity('business_profiles')
   export class BusinessProfile {
@@ -98,5 +103,17 @@ import { User } from 'src/users/user.entity';
 
     @Column({ type: 'uuid' , unique: true})
   userId: string;
+
+  @OneToMany(() => BusinessItem, item => item.businessProfile, { cascade: true })
+  catalogItems: BusinessItem[];
+
+  @OneToMany(() => Client, client => client.businessProfile, { cascade: true })
+  clients:       Client[];
+
+  @OneToMany(() => Invoice, invoice => invoice.businessProfile, { cascade: true })
+  invoices:      Invoice[];
+
+  @OneToMany(() => Quotation, quotation => quotation.businessProfile, { cascade: true })
+  quotations:    Quotation[];
   }
   

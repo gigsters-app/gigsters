@@ -10,6 +10,7 @@ import { RegisterUserDto } from './DTOs/register-user.dto';
 import { BusinessProfile } from 'src/business-profile/business-profile.entity';
 import { MailService } from 'src/common/mail/mail.service';
 import { JwtService } from '@nestjs/jwt';
+import { RegisterDto } from './DTOs/register.dto';
 
 @Injectable()
 export class UsersService {
@@ -56,7 +57,40 @@ if (!defaultRole) {
      
     return this.entityManager.save(user);
   }
+  // 1) Basic user registration
+  async registerBasicUser(dto: RegisterDto): Promise<User> {
+    const { email, password } = dto;
 
+    // check if email exists
+    if (await this.entityManager.findOne(User, { where: { email } })) {
+      throw new BadRequestException('Email already in use');
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    return this.entityManager.transaction(async (manager) => {
+      // load 'user' role
+      const userRole = await manager.findOne(Role, { where: { name: 'user' } });
+      if (!userRole) throw new NotFoundException('Role "user" not found');
+
+      const user = manager.create(User, {
+        email,
+        password: hashed,
+        roles: [userRole],
+      });
+      const saved = await manager.save(User, user);
+
+      // generate activation token
+      const token = this.jwtService.sign(
+        { sub: saved.id, email: saved.email },
+        { secret: process.env.ACTIVATION_JWT_SECRET, expiresIn: '24h' }
+      );
+      const link = `${process.env.FRONTEND_URL}/auth/activate?token=${token}`;
+      await this.emailService.sendActivationEmail(saved.email, link);
+
+      return saved;
+    });
+  }
   async registerUserWithBusinessProfile(dto: RegisterUserDto): Promise<User> {
     const {
       email,

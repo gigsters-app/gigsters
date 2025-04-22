@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
-import { EntityManager } from 'typeorm';
+import { EntityManager, QueryFailedError } from 'typeorm';
 import { CreateRoleDto } from './DTOs/create-role.dto';
 import { Role } from './role.entity';
 import { UpdateRoleDto } from './DTOs/update-role';
@@ -13,7 +13,24 @@ export class RolesService {
       ) {}
       async create(createRoleDto: CreateRoleDto): Promise<Role> {
         const role = this.entityManager.create(Role, createRoleDto);
-        return this.entityManager.save(role);
+      
+        try {
+          return await this.entityManager.save(role);
+        } catch (error) {
+          // Handle unique‐constraint violation (MySQL ER_DUP_ENTRY)
+          if (
+            error instanceof QueryFailedError &&
+            (error as any).driverError?.code === 'ER_DUP_ENTRY'
+          ) {
+            throw new ConflictException(
+              `A role with the name "${createRoleDto.name}" already exists.`,
+            );
+          }
+          // Fallback for any other errors
+          throw new InternalServerErrorException(
+            'Could not create role — please try again later.',
+          );
+        }
       }
     
       async findAll(): Promise<Role[]> {
