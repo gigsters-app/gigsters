@@ -4,7 +4,8 @@ import {
     Column,
     ManyToOne,
   } from 'typeorm';
-  import { Invoice } from '../invoice/invoice.entity';
+import { Invoice } from './invoice.entity';
+
   
   @Entity()
   export class InvoiceItem {

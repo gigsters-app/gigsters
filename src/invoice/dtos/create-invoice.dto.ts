@@ -14,8 +14,10 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { InvoiceStatus } from '../invoice.entity';
-import { CreateInvoiceItemDto } from 'src/invoice-item/dtos/create-invoice-item.dto';
+import { InvoiceStatus } from '../entities/invoice.entity';
+import { CreateInvoiceItemDto } from './create-invoice-item.dto';
+import { CreateClientDto } from 'src/client/dtos/create-client.dto';
+
 
 export class CreateInvoiceDto {
   @ApiProperty({
@@ -25,6 +27,28 @@ export class CreateInvoiceDto {
   })
   @IsUUID()
   businessProfileId: string;
+
+  @ApiProperty({
+    description: 'Existing client ID (omit to create a new client)',
+    required: false,
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  clientId?: string;
+
+  // ← Add this block so `createInvoiceDto.client` exists
+  @ApiProperty({
+    description: 'Data for a new client (if clientId is omitted)',
+    required: false,
+    type: CreateClientDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateClientDto)
+  client?: CreateClientDto;
+
+
 
   @ApiProperty({
     description: 'Human‑readable title or subject of the invoice',
@@ -112,14 +136,7 @@ export class CreateInvoiceDto {
   @IsOptional()
   terms?: string;
 
-  @ApiPropertyOptional({
-    description: 'UUID of the client to bill',
-    format: 'uuid',
-    example: 'b4f2a6e3-5f7c-11ec-81d3-0242ac130003',
-  })
-  @IsUUID()
-  @IsOptional()
-  clientId?: string;
+
 
   @ApiProperty({
     description: 'Line items on this invoice (at least one)',

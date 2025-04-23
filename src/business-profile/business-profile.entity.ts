@@ -11,7 +11,7 @@ import {
 import { User } from 'src/users/user.entity';
 import { BusinessItem } from 'src/business-item/business-item.entity';
 import { Client } from 'src/client/client.entity';
-import { Invoice } from 'src/invoice/invoice.entity';
+import { Invoice } from 'src/invoice/entities/invoice.entity';
 import { Quotation } from 'src/quotation/quotation.entity';
   
   @Entity('business_profiles')

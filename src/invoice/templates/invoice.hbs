@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    :root {
+      --font-base: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --color-primary: #333;
+      --color-secondary: #555;
+      --color-accent: #007bff;
+      --color-light: #f9f9f9;
+      --border-color: #e0e0e0;
+      --padding: 20px;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: var(--font-base);
+      color: var(--color-primary);
+      line-height: 1.5;
+      padding: var(--padding);
+    }
+    header, footer {
+      width: 100%;
+      margin-bottom: var(--padding);
+    }
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--padding);
+    }
+    .logo img {
+      max-height: 60px;
+      max-width: 200px;
+    }
+    .company-details, .customer-details {
+      font-size: 0.9rem;
+      color: var(--color-secondary);
+    }
+    h1.invoice-title {
+      color: var(--color-accent);
+      font-size: 1.75rem;
+      margin-bottom: calc(var(--padding) / 2);
+    }
+    .invoice-meta p {
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--padding);
+    }
+    th, td {
+      padding: 12px 8px;
+      border: 1px solid var(--border-color);
+    }
+    th {
+      background-color: var(--color-light);
+      text-align: left;
+      font-weight: bold;
+    }
+    tbody tr:nth-child(even) {
+      background-color: var(--color-light);
+    }
+    td.numeric {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .totals {
+      width: 35%;
+      float: right;
+      margin-top: var(--padding);
+    }
+    .totals table {
+      width: 100%;
+    }
+    .notes, .terms {
+      margin-top: var(--padding);
+      font-size: 0.85rem;
+      color: var(--color-secondary);
+    }
+    footer {
+      clear: both;
+      border-top: 1px solid var(--border-color);
+      padding-top: calc(var(--padding) / 2);
+      font-size: 0.75rem;
+      color: var(--color-secondary);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header class="header-container">
+    <div class="logo">
+      {{#if business.logoUrl}}<img src="{{business.logoUrl}}" alt="Logo" />{{/if}}
+    </div>
+    <div class="company-details">
+      <strong>{{business.displayName}}</strong><br />
+      {{business.street}}<br />
+      {{#if business.street2}}{{business.street2}}<br />{{/if}}
+      {{business.city}}, {{business.state}} {{business.zip}}<br />
+      {{business.country}}<br />
+      {{#if business.phone}}Phone: {{business.phone}}<br />{{/if}}
+      {{#if business.email}}Email: {{business.email}}<br />{{/if}}
+      {{#if business.vatNumber}}VAT: {{business.vatNumber}}{{/if}}
+    </div>
+  </header>
+
+  <section class="customer-details">
+    <strong>Bill To:</strong><br />
+    {{client.name}}<br />
+    {{#if client.contactName}}Attn: {{client.contactName}}<br />{{/if}}
+    {{client.address}}<br />
+    {{client.country}}<br />
+    {{#if client.phone}}Phone: {{client.phone}}<br />{{/if}}
+    {{#if client.email}}Email: {{client.email}}<br />{{/if}}
+    {{#if client.vatNumber}}VAT: {{client.vatNumber}}{{/if}}
+  </section>
+
+  <h1 class="invoice-title">INVOICE</h1>
+  <div class="invoice-meta">
+    <p><strong>Invoice #:</strong> {{invoiceNumber}}</p>
+    <p><strong>Issue Date:</strong> {{issueDate}}</p>
+    <p><strong>Due Date:</strong> {{dueDate}}</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="numeric">Quantity</th>
+        <th class="numeric">Unit Price</th>
+        <th class="numeric">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each items}}
+      <tr>
+        <td>{{description}}</td>
+        <td class="numeric">{{quantity}}</td>
+        <td class="numeric">{{currency}} {{unitPrice}}</td>
+        <td class="numeric">{{currency}} {{total}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <table>
+      <tr>
+        <td>Subtotal:</td>
+        <td class="numeric">{{currency}} {{subtotal}}</td>
+      </tr>
+      <tr>
+        <td>Tax ({{taxRate}}%):</td>
+        <td class="numeric">{{currency}} {{tax}}</td>
+      </tr>
+      {{#if discount}}
+      <tr>
+        <td>Discount:</td>
+        <td class="numeric">{{currency}} {{discount}}</td>
+      </tr>
+      {{/if}}
+      <tr>
+        <td><strong>Total:</strong></td>
+        <td class="numeric"><strong>{{currency}} {{total}}</strong></td>
+      </tr>
+    </table>
+  </div>
+
+  {{#if notes}}
+  <div class="notes">
+    <strong>Notes:</strong><br />
+    {{notes}}
+  </div>
+  {{/if}}
+
+  {{#if terms}}
+  <div class="terms">
+    <strong>Terms & Conditions:</strong><br />
+    {{terms}}
+  </div>
+  {{/if}}
+
+  <footer>
+    Thank you for your business.
+  </footer>
+</body>
+</html>

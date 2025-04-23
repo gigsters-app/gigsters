@@ -16,7 +16,6 @@ import { AuthGuard } from './auth/auth.guard';
 import { InvoiceModule } from './invoice/invoice.module';
 import { BusinessItemModule } from './business-item/business-item.module';
 import { ClientModule } from './client/client.module';
-import { InvoiceItemModule } from './invoice-item/invoice-item.module';
 import { QuotationItemModule } from './quotation-item/quotation-item.module';
 import { QuotationModule } from './quotation/quotation.module';
 
@@ -54,7 +53,6 @@ import { QuotationModule } from './quotation/quotation.module';
     InvoiceModule,
     BusinessItemModule,
     ClientModule,
-    InvoiceItemModule,
     QuotationModule,
     QuotationItemModule,
     
