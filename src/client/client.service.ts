@@ -1,6 +1,6 @@
 // src/client/client.service.ts
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 
@@ -21,6 +21,16 @@ export class ClientService {
    */
   async create(dto: CreateClientDto): Promise<Client> {
     return this.manager.transaction(async tx => {
+      // Check if client with this email already exists
+      if (dto.email) {
+        const existingClient = await tx.findOne(Client, {
+          where: { email: dto.email }
+        });
+        if (existingClient) {
+          throw new ConflictException(`A client with email "${dto.email}" already exists.`);
+        }
+      }
+
       const profile = await tx.findOne(BusinessProfile, {
         where: { id: dto.businessProfileId },
       });

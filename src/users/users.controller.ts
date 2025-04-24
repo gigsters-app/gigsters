@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards, NotFoundException } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./DTOs/create-user.dto";
 import { UpdateUserDto } from "./DTOs/update-user.dto";
@@ -50,8 +50,12 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User retrieved successfully.', type: User })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @Claims('user:read:email')
-  findByEmail(@Param('email') email: string) {
-    return this.userService.findOneByEmail(email);
+  async findByEmail(@Param('email') email: string) {
+    const user = await this.userService.findOneByEmail(email);
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    return user;
   }
 
   @Patch(':id')

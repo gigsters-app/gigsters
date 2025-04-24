@@ -66,6 +66,31 @@ import {
   
     @Column({ length: 100, nullable: true, update: false })
     licenseNumber?: string;
+
+    // Bank Details
+    @Column({ length: 100, nullable: true, update: false })
+    bankName?: string;
+
+    @Column({ length: 50, nullable: true, update: false })
+    bankAccountNumber?: string;
+
+    @Column({ length: 34, nullable: true, update: false })
+    iban?: string;
+
+    @Column({ length: 11, nullable: true, update: false })
+    swiftBic?: string;
+
+    @Column({ length: 50, nullable: true, update: false })
+    bankBranchCode?: string;
+
+    @Column({ length: 255, nullable: true, update: false })
+    bankAddress?: string;
+
+    @Column({ length: 100, nullable: true, update: false })
+    bankCity?: string;
+
+    @Column({ length: 100, nullable: true, update: false })
+    bankCountry?: string;
   
     @OneToOne(() => Invoice, inv => inv.businessSnapshot, {
       onDelete: 'CASCADE',

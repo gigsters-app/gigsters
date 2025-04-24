@@ -87,6 +87,47 @@ import { Quotation } from 'src/quotation/quotation.entity';
     @ApiProperty({ required: false })
     @Column({ nullable: true ,unique: true})
     licenseNumber?: string;
+
+    // Bank Details
+    @ApiProperty({ required: false, description: 'Name of the bank' })
+    @Column({ nullable: true })
+    bankName?: string;
+
+    @ApiProperty({ required: false, description: 'Bank account number' })
+    @Column({ nullable: true })
+    bankAccountNumber?: string;
+
+    @ApiProperty({ required: false, description: 'International Bank Account Number (IBAN)' })
+    @Column({ nullable: true })
+    iban?: string;
+
+    @ApiProperty({ required: false, description: 'SWIFT/BIC code' })
+    @Column({ nullable: true })
+    swiftBic?: string;
+
+    @ApiProperty({ required: false, description: 'Bank branch code or routing number' })
+    @Column({ nullable: true })
+    bankBranchCode?: string;
+
+    @ApiProperty({ required: false, description: 'Bank address' })
+    @Column({ nullable: true })
+    bankAddress?: string;
+
+    @ApiProperty({ required: false, description: 'Bank city' })
+    @Column({ nullable: true })
+    bankCity?: string;
+
+    @ApiProperty({ required: false, description: 'Bank country' })
+    @Column({ nullable: true })
+    bankCountry?: string;
+
+      /**
+   * Indicates whether the business profile is active.
+   * Set to `false` to disable the profile without deleting it.
+   */
+  @ApiProperty({ description: 'Flag indicating if the profile is active', default: true })
+  @Column({ default: true })
+  isActive: boolean;
   
     @CreateDateColumn({ type: 'timestamp' })
     createdAt: Date;
@@ -102,18 +143,18 @@ import { Quotation } from 'src/quotation/quotation.entity';
     user: User;
 
     @Column({ type: 'uuid' , unique: true})
-  userId: string;
+    userId: string;
 
-  @OneToMany(() => BusinessItem, item => item.businessProfile, { cascade: true })
-  catalogItems: BusinessItem[];
+    @OneToMany(() => BusinessItem, item => item.businessProfile, { cascade: true })
+    catalogItems: BusinessItem[];
 
-  @OneToMany(() => Client, client => client.businessProfile, { cascade: true })
-  clients:       Client[];
+    @OneToMany(() => Client, client => client.businessProfile, { cascade: true })
+    clients: Client[];
 
-  @OneToMany(() => Invoice, invoice => invoice.businessProfile, { cascade: true })
-  invoices:      Invoice[];
+    @OneToMany(() => Invoice, invoice => invoice.businessProfile, { cascade: true })
+    invoices: Invoice[];
 
-  @OneToMany(() => Quotation, quotation => quotation.businessProfile, { cascade: true })
-  quotations:    Quotation[];
+    @OneToMany(() => Quotation, quotation => quotation.businessProfile, { cascade: true })
+    quotations: Quotation[];
   }
   

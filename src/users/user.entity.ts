@@ -103,7 +103,7 @@ lastActivationEmailSentAt: Date;
     @DeleteDateColumn({ type: 'timestamp', nullable: true })
     deletedAt?: Date;
 
-    @ManyToMany(() => Role, { eager: true })
+    @ManyToMany(() => Role)
     @JoinTable({ name: 'users_roles' })
     roles: Role[];
 

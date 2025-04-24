@@ -10,6 +10,7 @@ import {
     Param,
     HttpCode,
     HttpStatus,
+    UseGuards,
   } from '@nestjs/common';
   import {
     ApiTags,
@@ -24,10 +25,13 @@ import {
   import { Client } from './client.entity';
 import { CreateClientDto } from './dtos/create-client.dto';
 import { UpdateClientDto } from './dtos/update-client.dto';
+import { ClientGuard } from './guards/client.guard';
+import { AuthGuard } from 'src/auth/auth.guard';
   
   @ApiTags('Clients')
-  // @ApiBearerAuth() // uncomment if using authentication
+  @ApiBearerAuth('access-token')
   @Controller('clients')
+  @UseGuards(AuthGuard, ClientGuard)
   export class ClientController {
     constructor(private readonly service: ClientService) {}
   
@@ -62,15 +66,15 @@ import { UpdateClientDto } from './dtos/update-client.dto';
     }
   
     @Get(':id')
-    @ApiOperation({ summary: 'Get a single client by ID' })
+    @ApiOperation({ summary: 'Get a client by ID' })
     @ApiParam({
       name: 'id',
-      description: 'UUID of the client to retrieve',
+      description: 'UUID of the client',
       example: 'b4f2a6e3-5f7c-11ec-81d3-0242ac130003',
     })
     @ApiResponse({
       status: 200,
-      description: 'The found client.',
+      description: 'The client has been found.',
       type: Client,
     })
     @ApiResponse({ status: 404, description: 'Client not found.' })
@@ -100,7 +104,6 @@ import { UpdateClientDto } from './dtos/update-client.dto';
     }
   
     @Delete(':id')
-    @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Delete a client' })
     @ApiParam({
       name: 'id',
@@ -108,12 +111,13 @@ import { UpdateClientDto } from './dtos/update-client.dto';
       example: 'b4f2a6e3-5f7c-11ec-81d3-0242ac130003',
     })
     @ApiResponse({
-      status: 204,
+      status: 200,
       description: 'The client has been successfully deleted.',
     })
     @ApiResponse({ status: 404, description: 'Client not found.' })
+    @HttpCode(HttpStatus.OK)
     async remove(@Param('id') id: string): Promise<void> {
-      await this.service.remove(id);
+      return this.service.remove(id);
     }
   }
   

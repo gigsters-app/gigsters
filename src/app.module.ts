@@ -1,27 +1,31 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { ConfigModule } from '@nestjs/config';
-import { RolesModule } from './roles/roles.module';
-import { AclModule } from './acl/acl.module';
-import { ClaimsModule } from './claims/claims.module';
+import { AuthModule } from './auth/auth.module';
 import { BusinessProfileModule } from './business-profile/business-profile.module';
-import { MailModule } from './common/mail/mail.module';
-import { APP_GUARD } from '@nestjs/core';
+import { ClientModule } from './client/client.module';
+import { InvoiceModule } from './invoice/invoice.module';
+import { QuotationModule } from './quotation/quotation.module';
+import { BusinessItemModule } from './business-item/business-item.module';
 import { AclGuard } from './acl/acl.guard';
 import { AuthGuard } from './auth/auth.guard';
-import { InvoiceModule } from './invoice/invoice.module';
-import { BusinessItemModule } from './business-item/business-item.module';
-import { ClientModule } from './client/client.module';
-import { QuotationItemModule } from './quotation-item/quotation-item.module';
-import { QuotationModule } from './quotation/quotation.module';
+import { RolesModule } from './roles/roles.module';
+import { ClaimsModule } from './claims/claims.module';
 
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }),
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'mysql.railway.internal',
@@ -32,8 +36,7 @@ import { QuotationModule } from './quotation/quotation.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
-
-    // TypeOrmModule.forRoot({
+    //  TypeOrmModule.forRoot({
     //   type: 'mysql',
     //   host: 'localhost',
     //   port: 3306,
@@ -43,30 +46,40 @@ import { QuotationModule } from './quotation/quotation.module';
     //   entities: [__dirname + '/**/*.entity{.ts,.js}'],
     //   synchronize: true,
     // }),
-    AuthModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRES_IN'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+    }),
     UsersModule,
-    RolesModule,
-    AclModule,
-    ClaimsModule,
+    AuthModule,
     BusinessProfileModule,
-    MailModule,
-    InvoiceModule,
-    BusinessItemModule,
     ClientModule,
+    InvoiceModule,
     QuotationModule,
-    QuotationItemModule,
-    
+    BusinessItemModule,
+    RolesModule,
+    ClaimsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, 
+  providers: [
+    AppService,
     {
       provide: APP_GUARD,
-      useClass: AuthGuard, // Runs first
+      useClass: AuthGuard,
     },
     {
       provide: APP_GUARD,
-      useClass: AclGuard, // Runs second
+      useClass: AclGuard,
     },
-],
+  ],
 })
 export class AppModule {}

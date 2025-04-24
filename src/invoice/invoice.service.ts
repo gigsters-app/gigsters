@@ -14,6 +14,9 @@ import { BusinessSnapshot } from './entities/invoice-business-snapshot.entity';
 import { ClientSnapshot } from './entities/invoice-client-snapshot.entity';
 import { BusinessItem } from 'src/business-item/business-item.entity';
 import { InvoiceCounter } from './entities/invoice-counter.entity';
+import { InvoiceNumberFormat } from './entities/invoice-number-format.entity';
+import { UpdateInvoiceNumberFormatDto } from './dtos/update-invoice-number-format.dto';
+import { CreateInvoiceNumberFormatDto } from './dtos/create-invoice-number-format.dto';
 
 @Injectable()
 export class InvoiceService {
@@ -58,31 +61,93 @@ async findOne(invoiceId: string): Promise<Invoice> {
     return invoice;
   }
 
+  /**
+   * Get or create invoice number format for a business profile
+   */
+  async getInvoiceNumberFormat(businessProfileId: string): Promise<InvoiceNumberFormat> {
+    let format = await this.entityManager.findOne(InvoiceNumberFormat, {
+      where: { businessProfileId },
+    });
 
+    if (!format) {
+      format = this.entityManager.create(InvoiceNumberFormat, {
+        businessProfileId,
+      });
+      format = await this.entityManager.save(format);
+    }
+
+    return format;
+  }
+
+  /**
+   * Update invoice number format for a business profile
+   */
+  async updateInvoiceNumberFormat(
+    businessProfileId: string,
+    dto: UpdateInvoiceNumberFormatDto,
+  ): Promise<InvoiceNumberFormat> {
+    const format = await this.getInvoiceNumberFormat(businessProfileId);
+    
+    // If setting to custom format, allow year to be optional
+    if (dto.isCustomFormat !== undefined) {
+      format.isCustomFormat = dto.isCustomFormat;
+    }
+    
+    // If not custom format, force year inclusion
+    if (!format.isCustomFormat) {
+      format.includeYear = true;
+    }
+    
+    // Update other fields
+    Object.assign(format, dto);
+    
+    return this.entityManager.save(format);
+  }
+
+  /**
+   * Generate invoice number based on format and counter
+   */
+  private generateInvoiceNumber(
+    format: InvoiceNumberFormat,
+    counter: InvoiceCounter,
+  ): string {
+    const year = new Date().getFullYear();
+    const paddedNumber = String(counter.lastNumber).padStart(format.paddingDigits, '0');
+    
+    let invoiceNumber = `${format.prefix}${format.separator}`;
+    
+    // Always include year for default format, optional for custom
+    if (format.includeYear || !format.isCustomFormat) {
+      invoiceNumber += `${year}${format.yearSeparator}`;
+    }
+    
+    invoiceNumber += paddedNumber;
+    
+    return invoiceNumber;
+  }
 
   async create(dto: CreateInvoiceDto): Promise<Invoice> {
     try {
       return await this.entityManager.transaction(async manager => {
-        // ── A) Lock & increment per-profile counter ─────────────────
+        // ── A) Get format and counter ─────────────────────────────
+        const format = await this.getInvoiceNumberFormat(dto.businessProfileId);
         let counter = await manager.findOne(InvoiceCounter, {
           where: { businessProfileId: dto.businessProfileId },
           lock: { mode: 'pessimistic_write' },
         });
+
         if (!counter) {
           counter = manager.create(InvoiceCounter, {
             businessProfileId: dto.businessProfileId,
-            lastNumber: 1,
+            lastNumber: format.startNumber,
           });
         } else {
           counter.lastNumber++;
         }
         await manager.save(counter);
 
-        // ── B) Generate invoiceNumber prefix ───────────────────────
-        const year = new Date().getFullYear();
-        const prefix = 'GP'; // Or derive from profile if desired
-        const seq = String(counter.lastNumber).padStart(6, '0');
-        const generatedInvoiceNumber = `${prefix}${year}-${seq}`;
+        // ── B) Generate invoiceNumber ───────────────────────────
+        const generatedInvoiceNumber = this.generateInvoiceNumber(format, counter);
 
         // ── 1) Load and validate BusinessProfile ────────────────────
         const businessProfile = await manager.findOne(BusinessProfile, {
@@ -163,6 +228,15 @@ async findOne(invoiceId: string): Promise<Invoice> {
           country:       businessProfile.country,
           companyLogo:   businessProfile.companyLogo,
           licenseNumber: businessProfile.licenseNumber,
+          // Bank Details
+          bankName:      businessProfile.bankName,
+          bankAccountNumber: businessProfile.bankAccountNumber,
+          iban:          businessProfile.iban,
+          swiftBic:      businessProfile.swiftBic,
+          bankBranchCode: businessProfile.bankBranchCode,
+          bankAddress:   businessProfile.bankAddress,
+          bankCity:      businessProfile.bankCity,
+          bankCountry:   businessProfile.bankCountry,
         });
         const savedBusinessSnapshot = await manager.save(businessSnapshot);
 
@@ -278,8 +352,37 @@ async findOne(invoiceId: string): Promise<Invoice> {
     }
   }
 
+  /**
+   * Create initial invoice number format for a business profile
+   */
+  async createInvoiceNumberFormat(
+    businessProfileId: string,
+    dto: CreateInvoiceNumberFormatDto,
+  ): Promise<InvoiceNumberFormat> {
+    // Check if format already exists
+    const existingFormat = await this.entityManager.findOne(InvoiceNumberFormat, {
+      where: { businessProfileId },
+    });
 
+    if (existingFormat) {
+      throw new ConflictException(
+        `Invoice number format already exists for business profile ${businessProfileId}`,
+      );
+    }
 
+    // Create new format
+    const format = this.entityManager.create(InvoiceNumberFormat, {
+      businessProfileId,
+      ...dto,
+    });
+
+    // If not custom format, force year inclusion
+    if (!format.isCustomFormat) {
+      format.includeYear = true;
+    }
+
+    return this.entityManager.save(format);
+  }
 
   /**
    * Fetch all invoices, including relations.
@@ -290,56 +393,103 @@ async findOne(invoiceId: string): Promise<Invoice> {
     });
   }
 
-
-
   /**
    * Update an existing invoice. Wrap in transaction for safety.
    */
-  // async update(
-  //   id: string,
-  //   dto: UpdateInvoiceDto,
-  // ): Promise<Invoice> {
-  //   return this.entityManager.transaction(async tx => {
-  //     const repo = tx.getRepository(Invoice);
-  //     let invoice = await repo.findOne({
-  //       where: { id },
-  //       relations: ['businessProfile', 'items'],
-  //     });
-  //     if (!invoice) {
-  //       throw new NotFoundException(`Invoice ${id} not found`);
-  //     }
+  async update(id: string, dto: UpdateInvoiceDto): Promise<Invoice> {
+    return this.entityManager.transaction(async manager => {
+      const invoice = await manager.findOne(Invoice, {
+        where: { id },
+        relations: ['businessProfile', 'clientSnapshot', 'items'],
+      });
 
-  //     // Merge simple fields
-  //     repo.merge(invoice, dto);
+      if (!invoice) {
+        throw new NotFoundException(`Invoice ${id} not found`);
+      }
 
-  //     // If items were provided, you could delete old ones & recreate:
-  //     if (dto.items) {
-  //       await tx.delete(InvoiceItem, { invoice: { id } });
-  //       invoice.items = dto.items.map(i =>
-  //         tx.create(InvoiceItem, {
-  //           description: i.description,
-  //           quantity: i.quantity,
-  //           unitPrice: i.unitPrice,
-  //           total: i.quantity * i.unitPrice,
-  //         }),
-  //       );
+      // Update basic fields
+      if (dto.title) invoice.title = dto.title;
+      if (dto.issueDate) invoice.issueDate = new Date(dto.issueDate);
+      if (dto.dueDate) invoice.dueDate = new Date(dto.dueDate);
+      if (dto.status) invoice.status = dto.status;
+      if (dto.currency) invoice.currency = dto.currency;
+      if (dto.notes) invoice.notes = dto.notes;
+      if (dto.terms) invoice.terms = dto.terms;
 
-  //       // Recalculate subtotal & totals
-  //       invoice.subTotal = invoice.items.reduce(
-  //         (sum, it) => sum + Number(it.total),
-  //         0,
-  //       );
-  //       invoice.tax = Number(
-  //         ((invoice.subTotal * invoice.taxRate) / 100).toFixed(2),
-  //       );
-  //       invoice.total = Number(
-  //         (invoice.subTotal + invoice.tax - invoice.discount).toFixed(2),
-  //       );
-  //     }
+      // Update tax rate and recalculate tax
+      if (dto.taxRate !== undefined) {
+        invoice.taxRate = dto.taxRate;
+        invoice.tax = Number(((invoice.subTotal * dto.taxRate) / 100).toFixed(2));
+      }
 
-  //     return repo.save(invoice);
-  //   });
-  // }
+      // Update discount
+      if (dto.discount !== undefined) {
+        invoice.discount = dto.discount;
+      }
+
+      // Update items if provided
+      if (dto.items && dto.items.length > 0) {
+        // Remove existing items
+        await manager.remove(invoice.items);
+
+        // Add new items
+        let subTotal = 0;
+        for (const itemDto of dto.items) {
+          let businessItem: BusinessItem;
+          if (itemDto.businessItemId) {
+            const found = await manager.findOne(BusinessItem, {
+              where: {
+                id: itemDto.businessItemId,
+                businessProfile: { id: invoice.businessProfile.id },
+              },
+            });
+            if (!found) {
+              throw new NotFoundException(
+                `Business item "${itemDto.businessItemId}" not found.`
+              );
+            }
+            businessItem = found;
+          } else {
+            const existing = await manager.findOne(BusinessItem, {
+              where: {
+                name: itemDto.description,
+                businessProfile: { id: invoice.businessProfile.id },
+              },
+            });
+            if (existing) {
+              businessItem = existing;
+            } else {
+              businessItem = manager.create(BusinessItem, {
+                name: itemDto.description,
+                defaultUnitPrice: itemDto.unitPrice!,
+                businessProfile: invoice.businessProfile,
+              });
+              businessItem = await manager.save(businessItem);
+            }
+          }
+
+          const unitPrice = Number(businessItem.defaultUnitPrice);
+          const lineTotal = Number((unitPrice * itemDto.quantity).toFixed(2));
+          const invoiceItem = manager.create(InvoiceItem, {
+            invoice,
+            description: businessItem.description ?? businessItem.name,
+            quantity: itemDto.quantity,
+            unitPrice,
+            total: lineTotal,
+          });
+          await manager.save(invoiceItem);
+          subTotal += lineTotal;
+        }
+
+        // Update totals
+        invoice.subTotal = subTotal;
+        invoice.tax = Number(((subTotal * invoice.taxRate) / 100).toFixed(2));
+        invoice.total = Number((subTotal + invoice.tax - invoice.discount).toFixed(2));
+      }
+
+      return manager.save(invoice);
+    });
+  }
 
   /**
    * Delete an invoice by ID.

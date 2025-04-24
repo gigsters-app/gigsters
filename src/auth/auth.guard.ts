@@ -1,4 +1,3 @@
-
 import {
     CanActivate,
     ExecutionContext,
@@ -10,10 +9,16 @@ import {
   import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './decorators/public.decorator';
+import { UsersService } from '../users/users.service';
   
   @Injectable()
   export class AuthGuard implements CanActivate {
-    constructor(private jwtService: JwtService, private readonly configService: ConfigService,private reflector: Reflector) {}
+    constructor(
+      private jwtService: JwtService, 
+      private readonly configService: ConfigService,
+      private reflector: Reflector,
+      private readonly userService: UsersService
+    ) {}
   
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -38,9 +43,15 @@ import { IS_PUBLIC_KEY } from './decorators/public.decorator';
             secret:process.env.JWT_SECRET,
           }
         );
-        // 💡 We're assigning the payload to the request object here
-        // so that we can access it in our route handlers
-        request['user'] = payload;
+
+        // Load the full user object from the database
+        const user = await this.userService.findOneById(payload.sub);
+        if (!user) {
+          throw new UnauthorizedException('User not found');
+        }
+
+        // Set the full user object in the request
+        request['user'] = user;
       } catch {
         throw new UnauthorizedException();
       }

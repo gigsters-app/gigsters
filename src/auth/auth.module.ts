@@ -23,8 +23,12 @@ import { MailModule } from 'src/common/mail/mail.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService,
-   
+  providers: [
+    AuthService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
   ],
 })
 export class AuthModule {}

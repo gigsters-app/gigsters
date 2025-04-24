@@ -17,4 +17,4 @@ export class CreateQuotationItemDto {
 
   @ApiProperty({ example: 100.00 }) @IsNumber() @Min(0)
   unitPrice: number;
-}
+} 

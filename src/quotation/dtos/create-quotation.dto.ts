@@ -14,7 +14,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { QuotationStatus } from '../quotation.entity';
-import { CreateQuotationItemDto } from 'src/quotation-item/dtos/create-quotation-item.dto';
+import { CreateQuotationItemDto } from './create-quotation-item.dto';
 
 
 export class CreateQuotationDto {
@@ -28,20 +28,13 @@ export class CreateQuotationDto {
 
   @ApiProperty({
     description: 'Human‑readable title of the quotation',
-    example: 'Website Proposal – May 2025',
+    example: 'Website Proposal – May 2025',
   })
   @IsString()
   title: string;
 
   @ApiProperty({
-    description: 'Unique quotation number/code',
-    example: 'QUO-2025-0001',
-  })
-  @IsString()
-  quotationNumber: string;
-
-  @ApiProperty({
-    description: 'Date the quotation is issued (ISO date)',
+    description: 'Date the quotation is issued (ISO date)',
     format: 'date',
     example: '2025-05-01',
   })
@@ -49,7 +42,7 @@ export class CreateQuotationDto {
   issueDate: string;
 
   @ApiProperty({
-    description: 'Expiration date of the quotation (ISO date)',
+    description: 'Expiration date of the quotation (ISO date)',
     format: 'date',
     example: '2025-05-15',
   })
@@ -74,7 +67,7 @@ export class CreateQuotationDto {
   clientId: string;
 
   @ApiPropertyOptional({
-    description: 'Currency code (ISO 4217)',
+    description: 'Currency code (ISO 4217)',
     example: 'USD',
     default: 'USD',
   })

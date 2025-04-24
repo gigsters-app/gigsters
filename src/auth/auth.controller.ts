@@ -122,12 +122,18 @@ export class AuthController {
     })
       async forgotPassword(@Body('email') email: string) {
         const user = await this.userService.findOneByEmail(email);
-        if (!user) return; // Avoid email enumeration
+        if (!user) {
+          // Avoid email enumeration by returning generic success message
+          // even when user doesn't exist
+          return { message: 'If an account with that email exists, a password reset link has been sent.' };
+        }
 
         const token = this.authService.generateResetToken(user.id);
 
         const resetLink = `https://gigsters-production.up.railway.app/auth/reset-password?token=${token}`;
-        await this.mailService.sendPasswordResetEmail("moussanassour1997@gmail.com", resetLink);
+        await this.mailService.sendPasswordResetEmail(user.email, resetLink);
+        
+        return { message: 'If an account with that email exists, a password reset link has been sent.' };
       }
 
       @Public()

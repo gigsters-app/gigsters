@@ -9,61 +9,73 @@ import {
     ParseUUIDPipe,
     Req,
     UseGuards,
+    ForbiddenException,
+    Logger,
   } from '@nestjs/common';
   import { BusinessProfileService } from './business-profile.service';
  
   import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateBusinessProfileDto } from './DTOs/create-business-profile.dto';
 import { UpdateBusinessProfileDto } from './DTOs/update-business-profile.dto';
-import { Roles } from 'src/roles/roles.decorator';
-import { Claims } from 'src/claims/claims.decorator';
-import { BusinessProfileUpdateGuard } from './guards/business-profile-update.guard';
+
+import { BusinessProfileGuard } from './guards/business-profile.guard';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { UsersService } from 'src/users/users.service';
 
   @ApiBearerAuth('access-token') // name must match the one in addBearerAuth
   @ApiTags('Business Profiles')
   @Controller('business-profiles')
+  @UseGuards(AuthGuard, BusinessProfileGuard)
   export class BusinessProfileController {
-    constructor(private readonly businessProfileService: BusinessProfileService) {}
+    private readonly logger = new Logger(BusinessProfileController.name);
+
+    constructor(private readonly businessProfileService: BusinessProfileService, private readonly userService: UsersService) {}
   
     @Post()
-    @ApiOperation({ summary: 'Create a new business profile' })
-    @Claims('business-profile:create')
+    @ApiOperation({ summary: 'Create a new business profile (admin/superadmin only)' })
     create(@Body() dto: CreateBusinessProfileDto) {
       return this.businessProfileService.create(dto);
     }
 
     @Post('register')
-    @Roles('user') // Optional if your guard uses JWT roles
-    @Claims('business-profile:register')
+    @ApiOperation({ summary: 'Register a business profile for the authenticated user' })
     register(@Body() dto: CreateBusinessProfileDto, @Req() req) {
+      this.logger.debug('User from request:', req.user);
+      if (!req.user || !req.user.id) {
+        throw new ForbiddenException('User not found in request');
+      }
       return this.businessProfileService.register(dto, req.user);
-}
+    }
   
     @Get()
-    @ApiOperation({ summary: 'Get all business profiles' })
-    @Claims('business-profile:read:all')
+    @ApiOperation({ summary: 'Get all business profiles (admin/superadmin only)' })
     findAll() {
       return this.businessProfileService.findAll();
     }
   
+    @Get('my-profile')
+    @ApiOperation({ summary: 'Get the authenticated user\'s business profile' })
+    findMyProfile(@Req() req) {
+      return this.userService.findOneById(req.user.id);
+    }
+  
     @Get(':id')
     @ApiOperation({ summary: 'Get a business profile by ID' })
-    @Claims('business-profile:read')
     findOne(@Param('id', ParseUUIDPipe) id: string) {
       return this.businessProfileService.findOne(id);
     }
   
     @Patch(':id')
-    @ApiOperation({ summary: 'Update a business profile by ID' })
-    @Claims('business-profile:update')
-    @UseGuards(BusinessProfileUpdateGuard)
-    update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateBusinessProfileDto) {
+    @ApiOperation({ summary: 'Update a business profile' })
+    update(
+      @Param('id', ParseUUIDPipe) id: string,
+      @Body() dto: UpdateBusinessProfileDto,
+    ) {
       return this.businessProfileService.update(id, dto);
     }
   
     @Delete(':id')
-    @ApiOperation({ summary: 'Delete a business profile by ID' })
-    @Claims('business-profile:delete')
+    @ApiOperation({ summary: 'Delete a business profile' })
     remove(@Param('id', ParseUUIDPipe) id: string) {
       return this.businessProfileService.remove(id);
     }

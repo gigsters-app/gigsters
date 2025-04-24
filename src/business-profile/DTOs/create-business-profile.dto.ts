@@ -7,8 +7,16 @@ import {
   MaxLength,
   IsUrl,
   IsUUID,
+  IsBoolean,
+  IsInt,
+  Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+export enum InvoiceFormatType {
+  DEFAULT = 'DEFAULT',  // INV-YEAR-NUMBER
+  CUSTOM = 'CUSTOM'     // User-defined format
+}
 
 export class CreateBusinessProfileDto {
   @ApiProperty({
@@ -45,7 +53,6 @@ export class CreateBusinessProfileDto {
   @IsString()
   @Matches(/^\+?[0-9]{7,15}$/, { message: 'Mobile must be a valid phone number' })
   mobile: string;
-
 
   @ApiProperty({ required: false, description: 'Landline or alternative phone', example: '+96824445566' })
   @IsOptional()
@@ -107,6 +114,55 @@ export class CreateBusinessProfileDto {
   @MaxLength(50)
   licenseNumber?: string;
 
+  // Bank Details
+  @ApiProperty({ required: false, description: 'Name of the bank', example: 'Bank Muscat' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  bankName?: string;
+
+  @ApiProperty({ required: false, description: 'Bank account number', example: '1234567890' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  bankAccountNumber?: string;
+
+  @ApiProperty({ required: false, description: 'International Bank Account Number (IBAN)', example: 'OM12BMBL1234567890123456' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/, { message: 'IBAN must be a valid format' })
+  iban?: string;
+
+  @ApiProperty({ required: false, description: 'SWIFT/BIC code', example: 'BMBLOM1X' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/, { message: 'SWIFT/BIC must be a valid format' })
+  swiftBic?: string;
+
+  @ApiProperty({ required: false, description: 'Bank branch code or routing number', example: '123456' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  bankBranchCode?: string;
+
+  @ApiProperty({ required: false, description: 'Bank address', example: '456 Banking Street' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  bankAddress?: string;
+
+  @ApiProperty({ required: false, description: 'Bank city', example: 'Muscat' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  bankCity?: string;
+
+  @ApiProperty({ required: false, description: 'Bank country', example: 'Oman' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  bankCountry?: string;
+
   @ApiProperty({ required: false, description: 'User who last updated the profile (for internal use)', example: 'admin@gigsters.app' })
   @IsOptional()
   @IsString()
@@ -121,4 +177,49 @@ export class CreateBusinessProfileDto {
   @IsOptional()
   @IsUUID()
   userId?: string;
+
+  @ApiProperty({
+    description: 'Type of invoice number format to use',
+    enum: InvoiceFormatType,
+    example: InvoiceFormatType.DEFAULT,
+  })
+  @IsEnum(InvoiceFormatType)
+  invoiceFormatType: InvoiceFormatType;
+
+  @ApiProperty({
+    description: 'Custom invoice prefix (required if invoiceFormatType is CUSTOM)',
+    example: 'GP',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  customInvoicePrefix?: string;
+
+  @ApiProperty({
+    description: 'Custom invoice separator (required if invoiceFormatType is CUSTOM)',
+    example: '-',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  customInvoiceSeparator?: string;
+
+  @ApiProperty({
+    description: 'Custom invoice starting number (required if invoiceFormatType is CUSTOM)',
+    example: 100,
+    required: false,
+  })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  customInvoiceStartNumber?: number;
+
+  @ApiProperty({
+    description: 'Whether to include year in custom invoice number',
+    example: true,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  customInvoiceIncludeYear?: boolean;
 }

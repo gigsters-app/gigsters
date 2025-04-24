@@ -1,194 +1,546 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8" />
-  <style>
-    :root {
-      --font-base: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      --color-primary: #333;
-      --color-secondary: #555;
-      --color-accent: #007bff;
-      --color-light: #f9f9f9;
-      --border-color: #e0e0e0;
-      --padding: 20px;
-    }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: var(--font-base);
-      color: var(--color-primary);
-      line-height: 1.5;
-      padding: var(--padding);
-    }
-    header, footer {
-      width: 100%;
-      margin-bottom: var(--padding);
-    }
-    .header-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--padding);
-    }
-    .logo img {
-      max-height: 60px;
-      max-width: 200px;
-    }
-    .company-details, .customer-details {
-      font-size: 0.9rem;
-      color: var(--color-secondary);
-    }
-    h1.invoice-title {
-      color: var(--color-accent);
-      font-size: 1.75rem;
-      margin-bottom: calc(var(--padding) / 2);
-    }
-    .invoice-meta p {
-      margin-bottom: 4px;
-      font-size: 0.9rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: var(--padding);
-    }
-    th, td {
-      padding: 12px 8px;
-      border: 1px solid var(--border-color);
-    }
-    th {
-      background-color: var(--color-light);
-      text-align: left;
-      font-weight: bold;
-    }
-    tbody tr:nth-child(even) {
-      background-color: var(--color-light);
-    }
-    td.numeric {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-    .totals {
-      width: 35%;
-      float: right;
-      margin-top: var(--padding);
-    }
-    .totals table {
-      width: 100%;
-    }
-    .notes, .terms {
-      margin-top: var(--padding);
-      font-size: 0.85rem;
-      color: var(--color-secondary);
-    }
-    footer {
-      clear: both;
-      border-top: 1px solid var(--border-color);
-      padding-top: calc(var(--padding) / 2);
-      font-size: 0.75rem;
-      color: var(--color-secondary);
-      text-align: center;
-    }
-  </style>
+    <meta charset="utf-8">
+    <style>
+        /* Modern CSS Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Modern Variables */
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #3b82f6;
+            --secondary-color: #1e40af;
+            --text-color: #1f2937;
+            --text-light: #6b7280;
+            --background-light: #f9fafb;
+            --border-color: #e5e7eb;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --radius: 12px;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #fff;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: var(--radius);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .logo-section {
+            width: 30%;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-container {
+            width: 120px;
+            height: 120px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .invoice-info {
+            width: 65%;
+            text-align: right;
+        }
+
+        .invoice-info h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .invoice-info p {
+            margin: 8px 0;
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            margin-top: 10px;
+        }
+
+        /* Business and Client Info */
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            gap: 30px;
+            align-items: stretch;
+        }
+
+        .business-info, .client-info {
+            flex: 1;
+            padding: 25px;
+            background-color: var(--background-light);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .business-info h2, .client-info h3 {
+            color: var(--primary-color);
+            font-size: 20px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .business-info h2::before {
+            content: "🏢";
+            font-size: 24px;
+        }
+
+        .client-info h3::before {
+            content: "👤";
+            font-size: 24px;
+        }
+
+        .business-info p, .client-info p {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        /* Items Table */
+        .items-section {
+            margin-bottom: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: #fff;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: var(--background-light);
+        }
+
+        /* Totals Section */
+        .totals-section {
+            width: 300px;
+            margin-left: auto;
+            margin-bottom: 40px;
+        }
+
+        .totals-table {
+            background-color: var(--background-light);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .totals-table td {
+            padding: 12px 16px;
+        }
+
+        .totals-table td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .totals-table tr:last-child td {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: var(--primary-color);
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        /* Bank Details */
+        .bank-details {
+            margin-top: 40px;
+            padding: 30px;
+            background-color: var(--background-light);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .bank-details h3 {
+            color: var(--primary-color);
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bank-details h3::before {
+            content: "🏦";
+            font-size: 24px;
+        }
+
+        .bank-details p {
+            margin: 12px 0;
+            color: var(--text-color);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bank-details p strong {
+            color: var(--text-light);
+        }
+
+        /* Notes and Terms */
+        .notes, .terms {
+            margin-top: 40px;
+            padding: 30px;
+            background-color: var(--background-light);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .notes h3, .terms h3 {
+            color: var(--primary-color);
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notes h3::before {
+            content: "📝";
+            font-size: 24px;
+        }
+
+        .terms h3::before {
+            content: "📋";
+            font-size: 24px;
+        }
+
+        .notes p, .terms p {
+            color: var(--text-color);
+            line-height: 1.8;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 30px;
+            background-color: var(--background-light);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .signature-box {
+            width: 45%;
+            text-align: center;
+        }
+
+        .signature-line {
+            width: 200px;
+            height: 1px;
+            background-color: var(--text-color);
+            margin: 50px auto 10px;
+        }
+
+        .stamp-box {
+            width: 45%;
+            text-align: center;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .stamp-placeholder {
+            width: 120px;
+            height: 120px;
+            border: 2px dashed var(--border-color);
+            border-radius: 50%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        /* Page Number */
+        .page-number {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        /* Modern Utility Classes */
+        .text-right {
+            text-align: right;
+        }
+
+        .text-bold {
+            font-weight: 600;
+        }
+
+        .text-muted {
+            color: var(--text-light);
+        }
+
+        /* Modern Responsive Design */
+        @media print {
+            body {
+                padding: 20px;
+            }
+            
+            .header {
+                background: none;
+                color: var(--text-color);
+                box-shadow: none;
+            }
+
+            .info-section {
+                flex-direction: row !important; /* Force row direction even in print */
+                page-break-inside: avoid; /* Prevent breaking between sections */
+            }
+
+            .business-info, .client-info {
+                width: 45% !important; /* Force width even in print */
+                margin-bottom: 0;
+                page-break-inside: avoid;
+            }
+
+            table {
+                box-shadow: none;
+            }
+
+            .bank-details, .notes, .terms, .signature-section {
+                box-shadow: none;
+                border: 1px solid var(--border-color);
+            }
+
+            .page-number {
+                position: fixed;
+                bottom: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <header class="header-container">
-    <div class="logo">
-      {{#if business.logoUrl}}<img src="{{business.logoUrl}}" alt="Logo" />{{/if}}
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo-container">
+                {{#if business.companyLogo}}
+                    <img src="{{business.companyLogo}}" alt="{{business.displayName}} Logo" />
+                {{else}}
+                    <div class="logo-placeholder">
+                        Company Logo
+                    </div>
+                {{/if}}
+            </div>
+        </div>
+        <div class="invoice-info">
+            <h1>INVOICE</h1>
+            <p><strong>Invoice Number:</strong> {{invoiceNumber}}</p>
+            <p><strong>Issue Date:</strong> {{issueDate}}</p>
+            <p><strong>Due Date:</strong> {{dueDate}}</p>
+            <span class="status-badge">{{status}}</span>
+        </div>
     </div>
-    <div class="company-details">
-      <strong>{{business.displayName}}</strong><br />
-      {{business.street}}<br />
-      {{#if business.street2}}{{business.street2}}<br />{{/if}}
-      {{business.city}}, {{business.state}} {{business.zip}}<br />
-      {{business.country}}<br />
-      {{#if business.phone}}Phone: {{business.phone}}<br />{{/if}}
-      {{#if business.email}}Email: {{business.email}}<br />{{/if}}
-      {{#if business.vatNumber}}VAT: {{business.vatNumber}}{{/if}}
+
+    <div class="info-section">
+        <div class="business-info">
+            <h2>{{business.displayName}}</h2>
+            <p>{{business.street}}</p>
+            {{#if business.street2}}<p>{{business.street2}}</p>{{/if}}
+            <p>{{business.city}}, {{business.state}} {{business.zip}}</p>
+            <p>{{business.country}}</p>
+            {{#if business.phone}}<p>Phone: {{business.phone}}</p>{{/if}}
+            {{#if business.email}}<p>Email: {{business.email}}</p>{{/if}}
+            {{#if business.vatNumber}}<p>VAT: {{business.vatNumber}}</p>{{/if}}
+        </div>
+        <div class="client-info">
+            <h3>Bill To:</h3>
+            <p>{{client.name}}</p>
+            {{#if client.contactName}}<p>Attn: {{client.contactName}}</p>{{/if}}
+            <p>{{client.address}}</p>
+            <p>{{client.country}}</p>
+            {{#if client.phone}}<p>Phone: {{client.phone}}</p>{{/if}}
+            {{#if client.email}}<p>Email: {{client.email}}</p>{{/if}}
+            {{#if client.vatNumber}}<p>VAT: {{client.vatNumber}}</p>{{/if}}
+        </div>
     </div>
-  </header>
 
-  <section class="customer-details">
-    <strong>Bill To:</strong><br />
-    {{client.name}}<br />
-    {{#if client.contactName}}Attn: {{client.contactName}}<br />{{/if}}
-    {{client.address}}<br />
-    {{client.country}}<br />
-    {{#if client.phone}}Phone: {{client.phone}}<br />{{/if}}
-    {{#if client.email}}Email: {{client.email}}<br />{{/if}}
-    {{#if client.vatNumber}}VAT: {{client.vatNumber}}{{/if}}
-  </section>
+    <div class="items-section">
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each items}}
+                <tr>
+                    <td>{{description}}</td>
+                    <td>{{quantity}}</td>
+                    <td>{{currency}} {{unitPrice}}</td>
+                    <td class="text-right">{{currency}} {{total}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
 
-  <h1 class="invoice-title">INVOICE</h1>
-  <div class="invoice-meta">
-    <p><strong>Invoice #:</strong> {{invoiceNumber}}</p>
-    <p><strong>Issue Date:</strong> {{issueDate}}</p>
-    <p><strong>Due Date:</strong> {{dueDate}}</p>
-  </div>
+    <div class="totals-section">
+        <table class="totals-table">
+            <tr>
+                <td><strong>Subtotal:</strong></td>
+                <td class="text-right">{{currency}} {{subtotal}}</td>
+            </tr>
+            <tr>
+                <td><strong>Tax ({{taxRate}}%):</strong></td>
+                <td class="text-right">{{currency}} {{tax}}</td>
+            </tr>
+            {{#if discount}}
+            <tr>
+                <td><strong>Discount:</strong></td>
+                <td class="text-right">{{currency}} {{discount}}</td>
+            </tr>
+            {{/if}}
+            <tr>
+                <td><strong>Total:</strong></td>
+                <td class="text-right"><strong>{{currency}} {{total}}</strong></td>
+            </tr>
+        </table>
+    </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Description</th>
-        <th class="numeric">Quantity</th>
-        <th class="numeric">Unit Price</th>
-        <th class="numeric">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{#each items}}
-      <tr>
-        <td>{{description}}</td>
-        <td class="numeric">{{quantity}}</td>
-        <td class="numeric">{{currency}} {{unitPrice}}</td>
-        <td class="numeric">{{currency}} {{total}}</td>
-      </tr>
-      {{/each}}
-    </tbody>
-  </table>
+    {{#if business.bankName}}
+    <div class="bank-details">
+        <h3>Bank Details</h3>
+        <p><strong>Bank Name:</strong> {{business.bankName}}</p>
+        {{#if business.bankAccountNumber}}<p><strong>Account Number:</strong> {{business.bankAccountNumber}}</p>{{/if}}
+        {{#if business.iban}}<p><strong>IBAN:</strong> {{business.iban}}</p>{{/if}}
+        {{#if business.swiftBic}}<p><strong>SWIFT/BIC:</strong> {{business.swiftBic}}</p>{{/if}}
+        {{#if business.bankBranchCode}}<p><strong>Branch Code:</strong> {{business.bankBranchCode}}</p>{{/if}}
+        {{#if business.bankAddress}}<p><strong>Bank Address:</strong> {{business.bankAddress}}</p>{{/if}}
+        {{#if business.bankCity}}<p><strong>Bank City:</strong> {{business.bankCity}}</p>{{/if}}
+        {{#if business.bankCountry}}<p><strong>Bank Country:</strong> {{business.bankCountry}}</p>{{/if}}
+    </div>
+    {{/if}}
 
-  <div class="totals">
-    <table>
-      <tr>
-        <td>Subtotal:</td>
-        <td class="numeric">{{currency}} {{subtotal}}</td>
-      </tr>
-      <tr>
-        <td>Tax ({{taxRate}}%):</td>
-        <td class="numeric">{{currency}} {{tax}}</td>
-      </tr>
-      {{#if discount}}
-      <tr>
-        <td>Discount:</td>
-        <td class="numeric">{{currency}} {{discount}}</td>
-      </tr>
-      {{/if}}
-      <tr>
-        <td><strong>Total:</strong></td>
-        <td class="numeric"><strong>{{currency}} {{total}}</strong></td>
-      </tr>
-    </table>
-  </div>
+    {{#if notes}}
+    <div class="notes">
+        <h3>Notes:</h3>
+        <p>{{notes}}</p>
+    </div>
+    {{/if}}
 
-  {{#if notes}}
-  <div class="notes">
-    <strong>Notes:</strong><br />
-    {{notes}}
-  </div>
-  {{/if}}
+    {{#if terms}}
+    <div class="terms">
+        <h3>Terms & Conditions:</h3>
+        <p>{{terms}}</p>
+    </div>
+    {{/if}}
 
-  {{#if terms}}
-  <div class="terms">
-    <strong>Terms & Conditions:</strong><br />
-    {{terms}}
-  </div>
-  {{/if}}
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-line"></div>
+            <p>Authorized Signature</p>
+        </div>
+        <div class="stamp-box">
+            <div class="stamp-placeholder">
+                Company Stamp
+            </div>
+        </div>
+    </div>
 
-  <footer>
-    Thank you for your business.
-  </footer>
+    <div class="page-number">Page 1 of 1</div>
 </body>
 </html>

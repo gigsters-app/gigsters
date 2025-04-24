@@ -5,11 +5,15 @@ import { InjectEntityManager }          from '@nestjs/typeorm';
 import { EntityManager }                from 'typeorm';
 
 import { Quotation, QuotationStatus }        from './quotation.entity';
-import { QuotationItem }                     from '../quotation-item/quotation-item.entity';
+import { QuotationItem }                     from './entities/quotation-item.entity';
 import { BusinessProfile }                   from '../business-profile/business-profile.entity';
 import { Client }                            from '../client/client.entity';
 import { CreateQuotationDto } from './dtos/create-quotation.dto';
 import { UpdateQuotationDto } from './dtos/update-quotation.dto';
+import { QuotationNumberFormat } from './entities/quotation-number-format.entity';
+import { QuotationCounter } from './entities/quotation-counter.entity';
+import { BusinessSnapshot } from './entities/quotation-business-snapshot.entity';
+import { ClientSnapshot } from './entities/quotation-client-snapshot.entity';
 
 @Injectable()
 export class QuotationService {
@@ -17,13 +21,54 @@ export class QuotationService {
     @InjectEntityManager()
     private readonly em: EntityManager,
   ) {}
- /**
+
+  /**
+   * Get or create quotation number format for a business profile
+   */
+  async getQuotationNumberFormat(businessProfileId: string): Promise<QuotationNumberFormat> {
+    let format = await this.em.findOne(QuotationNumberFormat, {
+      where: { businessProfileId },
+    });
+
+    if (!format) {
+      format = this.em.create(QuotationNumberFormat, {
+        businessProfileId,
+      });
+      format = await this.em.save(format);
+    }
+
+    return format;
+  }
+
+  /**
+   * Generate quotation number based on format and counter
+   */
+  private generateQuotationNumber(
+    format: QuotationNumberFormat,
+    counter: QuotationCounter,
+  ): string {
+    const year = new Date().getFullYear();
+    const paddedNumber = String(counter.lastNumber).padStart(format.paddingDigits, '0');
+    
+    let quotationNumber = `${format.prefix}${format.separator}`;
+    
+    // Always include year for default format, optional for custom
+    if (format.includeYear || !format.isCustomFormat) {
+      quotationNumber += `${year}${format.yearSeparator}`;
+    }
+    
+    quotationNumber += paddedNumber;
+    
+    return quotationNumber;
+  }
+
+  /**
    * Fetch a single quotation with all relations:
    *  – businessProfile
    *  – client
    *  – items (and their optional businessItem)
    */
- async findFull(id: string): Promise<Quotation> {
+  async findFull(id: string): Promise<Quotation> {
     const q = await this.em.findOne(Quotation, {
       where: { id },
       relations: [
@@ -38,16 +83,37 @@ export class QuotationService {
     }
     return q;
   }
+
   /**
    * Create a new Quotation in a single transaction.
    */
   async create(dto: CreateQuotationDto): Promise<Quotation> {
     return this.em.transaction(async tx => {
-      // 1) Load BusinessProfile
+      // 1) Get format and counter
+      const format = await this.getQuotationNumberFormat(dto.businessProfileId);
+      let counter = await tx.findOne(QuotationCounter, {
+        where: { businessProfileId: dto.businessProfileId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!counter) {
+        counter = tx.create(QuotationCounter, {
+          businessProfileId: dto.businessProfileId,
+          lastNumber: format.startNumber,
+        });
+      } else {
+        counter.lastNumber++;
+      }
+      await tx.save(counter);
+
+      // 2) Generate quotationNumber
+      const generatedQuotationNumber = this.generateQuotationNumber(format, counter);
+
+      // 3) Load BusinessProfile
       const bp = await tx.findOne(BusinessProfile, { where: { id: dto.businessProfileId } });
       if (!bp) throw new NotFoundException('BusinessProfile not found');
 
-      // 2) Load Client and verify it belongs to that profile
+      // 4) Load Client and verify it belongs to that profile
       const client = await tx.findOne(Client, {
         where: { id: dto.clientId },
         relations: ['businessProfile'],
@@ -56,10 +122,10 @@ export class QuotationService {
         throw new NotFoundException('Client not found for this BusinessProfile');
       }
 
-      // 3) Build Quotation entity
+      // 5) Create the Quotation record
       const q = tx.create(Quotation, {
         title: dto.title,
-        quotationNumber: dto.quotationNumber,
+        quotationNumber: generatedQuotationNumber,
         issueDate: new Date(dto.issueDate),
         expirationDate: new Date(dto.expirationDate),
         status: dto.status ?? QuotationStatus.DRAFT,
@@ -72,25 +138,76 @@ export class QuotationService {
         notes: dto.notes,
         terms: dto.terms,
       });
+      await tx.save(q);
 
-      // 4) Build QuotationItem entities
-      q.items = dto.items.map(i =>
-        tx.create(QuotationItem, {
-          businessItemId: i.businessItemId,
-          description:  i.description,
-          quantity:     i.quantity,
-          unitPrice:    i.unitPrice,
-          total:        i.quantity * i.unitPrice,
-        }),
-      );
+      // 6) Create and save snapshots
+      const businessSnapshot = tx.create(BusinessSnapshot, {
+        quotation: q,
+        name: bp.displayName,
+        legalName: bp.legalName,
+        registrationNumber: bp.licenseNumber || '',
+        taxNumber: bp.vatNumber,
+        address: `${bp.street}${bp.street2 ? `, ${bp.street2}` : ''}, ${bp.city}${bp.state ? `, ${bp.state}` : ''} ${bp.zip || ''}, ${bp.country}`,
+        phone: bp.phone || bp.mobile,
+        email: bp.user?.email || '',
+        website: bp.website,
+        logoUrl: bp.companyLogo,
+      });
+      const savedBusinessSnapshot = await tx.save(businessSnapshot);
 
-      // 5) Calculate subtotals and totals
-      q.subTotal = q.items.reduce((sum, it) => sum + Number(it.total), 0);
-      q.tax      = Number(((q.subTotal * q.taxRate) / 100).toFixed(2));
-      q.total    = Number((q.subTotal + q.tax - q.discount).toFixed(2));
+      const clientSnapshot = tx.create(ClientSnapshot, {
+        quotation: q,
+        name: client.name,
+        email: client.email || '',
+        phone: client.phone || '',
+        address: client.address || '',
+        taxNumber: client.vatNumber,
+        registrationNumber: '',
+      });
+      const savedClientSnapshot = await tx.save(clientSnapshot);
 
-      // 6) Persist quotation + items
-      return tx.save(q);
+      q.businessSnapshot = savedBusinessSnapshot;
+      q.clientSnapshot = savedClientSnapshot;
+      await tx.save(q);
+
+      // 7) Create and save items
+      const items = dto.items.map(i => {
+        const total = i.quantity * i.unitPrice;
+        return tx.create(QuotationItem, {
+          quotation: q,
+          name: i.description,
+          description: i.description,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          totalPrice: total,
+          total: total,
+          taxRate: 0,
+          taxAmount: 0,
+          discountRate: 0,
+          discountAmount: 0,
+          finalPrice: total,
+        });
+      });
+      await tx.save(items);
+
+      // 8) Calculate subtotals and totals
+      const subTotal = items.reduce((sum, it) => sum + Number(it.total), 0);
+      const tax = Number(((subTotal * q.taxRate) / 100).toFixed(2));
+      const total = Number((subTotal + tax - q.discount).toFixed(2));
+
+      // 9) Update quotation with totals
+      await tx.update(Quotation, { id: q.id }, { subTotal, tax, total });
+
+      // 10) Return fully populated quotation
+      return await tx.findOneOrFail(Quotation, {
+        where: { id: q.id },
+        relations: [
+          'businessProfile',
+          'businessSnapshot',
+          'clientSnapshot',
+          'items',
+        ],
+      });
     });
   }
 

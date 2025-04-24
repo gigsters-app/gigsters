@@ -198,15 +198,23 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
       }
     
       async findOneById(id: string): Promise<User> {
-        const user = await this.entityManager.findOne(User, { where: { id } });
-        if (!user) throw new NotFoundException(`User with id ${id} not found`);
+        const user = await this.entityManager.findOne(User, {
+          where: { id },
+          relations: ['roles', 'roles.claims'],
+        });
+        if (!user) {
+          throw new NotFoundException(`User with ID ${id} not found`);
+        }
         return user;
       }
     
-      async findOneByEmail(email: string): Promise<User> {
-        const user = await this.entityManager.findOne(User, { where: { email },relations: ['roles', 'roles.claims'],
-          select: ['id', 'email', 'password','isActive','lastActivationEmailSentAt','failedLoginAttempts','failedLoginAttempts'], });
-        if (!user) throw new NotFoundException(`User with email ${email} not found`);
+      async findOneByEmail(email: string): Promise<User | null> {
+        // Find user with password and explicitly load roles for auth
+        const user = await this.entityManager.findOne(User, {
+          where: { email },
+          select: ['id', 'email', 'password', 'firstName', 'lastName', 'isActive', 'failedLoginAttempts', 'lastFailedLoginAttempt', 'lastActivationEmailSentAt'],
+          relations: ['roles', 'roles.claims'],
+        });
         return user;
       }
     
