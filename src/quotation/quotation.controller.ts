@@ -11,6 +11,7 @@ import {
     HttpCode,
     HttpStatus,
     Res,
+    UseGuards,
   } from '@nestjs/common';
   import {
     ApiTags,
@@ -29,9 +30,14 @@ import { QuotationPdfService } from './quotation-pdf.service';
 import { Response } from 'express';
 import { QuotationToInvoiceDto } from './dtos/quotation-to-invoice.dto';
 import { Invoice } from '../invoice/entities/invoice.entity';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { QuotationGuard } from './guards/quotation.guard';
+import { UserQuotationsGuard } from './guards/user-quotations.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 @ApiTags('Quotations')
 @Controller('quotations')
+@UseGuards(AuthGuard)
 export class QuotationController {
   constructor(
     private readonly quotationService: QuotationService,
@@ -39,6 +45,7 @@ export class QuotationController {
   ) {}
 
   @Get(':id/full')
+  @UseGuards(QuotationGuard)
   @ApiOperation({ summary: 'Get full quotation with profile, client & items' })
   @ApiParam({ name: 'id', description: 'Quotation UUID' })
   @ApiResponse({ status: 200, type: Quotation })
@@ -48,6 +55,7 @@ export class QuotationController {
   }
 
   @Post()
+  @UseGuards(QuotationGuard)
   @ApiOperation({ summary: 'Create a new quotation' })
   @ApiBody({ type: CreateQuotationDto })
   @ApiResponse({ status: 201, description: 'Quotation created', type: Quotation })
@@ -56,13 +64,27 @@ export class QuotationController {
   }
 
   @Get()
+  @UseGuards(QuotationGuard)
   @ApiOperation({ summary: 'List all quotations' })
   @ApiResponse({ status: 200, description: 'All quotations', type: [Quotation] })
   findAll(): Promise<Quotation[]> {
     return this.quotationService.findAll();
   }
 
+  @Get('my-quotations')
+  @UseGuards(UserQuotationsGuard)
+  @ApiOperation({ summary: 'Get all quotations for the current user based on JWT token' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of quotations for the current user.',
+    type: [Quotation],
+  })
+  async findMyQuotations(@CurrentUser() user: any): Promise<Quotation[]> {
+    return this.quotationService.findQuotationsByUser(user);
+  }
+
   @Get(':id')
+  @UseGuards(QuotationGuard)
   @ApiParam({ name: 'id', description: 'Quotation UUID' })
   @ApiOperation({ summary: 'Get one quotation by ID' })
   @ApiResponse({ status: 200, description: 'The found quotation', type: Quotation })
@@ -72,6 +94,7 @@ export class QuotationController {
   }
 
   @Patch(':id')
+  @UseGuards(QuotationGuard)
   @ApiParam({ name: 'id', description: 'Quotation UUID' })
   @ApiBody({ type: UpdateQuotationDto })
   @ApiOperation({ summary: 'Update an existing quotation' })
@@ -85,6 +108,7 @@ export class QuotationController {
   }
 
   @Delete(':id')
+  @UseGuards(QuotationGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', description: 'Quotation UUID' })
   @ApiOperation({ summary: 'Delete a quotation' })
@@ -95,6 +119,7 @@ export class QuotationController {
   }
 
   @Get(':id/pdf')
+  @UseGuards(QuotationGuard)
   @ApiOperation({ summary: 'Download quotation as PDF' })
   @ApiParam({ name: 'id', description: 'Quotation UUID' })
   @ApiProduces('application/pdf')
@@ -113,6 +138,7 @@ export class QuotationController {
   }
 
   @Post('convert-to-invoice')
+  @UseGuards(QuotationGuard)
   @ApiOperation({ summary: 'Convert an approved quotation to an invoice' })
   @ApiResponse({
     status: HttpStatus.CREATED,

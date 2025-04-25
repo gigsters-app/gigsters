@@ -3,6 +3,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectEntityManager }          from '@nestjs/typeorm';
 import { EntityManager }                from 'typeorm';
+import { In } from 'typeorm';
 
 import { Quotation, QuotationStatus }        from './quotation.entity';
 import { QuotationItem }                     from './entities/quotation-item.entity';
@@ -346,5 +347,67 @@ export class QuotationService {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + daysFromNow);
     return dueDate;
+  }
+
+  /**
+   * Find all quotations for a user based on their business profiles.
+   * For regular users, this returns only quotations from their business profiles.
+   * For superadmins or users with quotation:manage:any claim, it returns all quotations.
+   */
+  async findQuotationsByUser(user: any): Promise<Quotation[]> {
+    console.log('findQuotationsByUser called with user:', JSON.stringify({
+      id: user.id,
+      email: user.email,
+      roles: user.roles?.map(r => ({ name: r.name, isSuperAdmin: r.isSuperAdmin })),
+      businessProfiles: user.businessProfiles?.map(bp => ({ id: bp.id }))
+    }, null, 2));
+    
+    // Check if user is superadmin or has manage:any claim
+    const isSuperadmin = user.roles?.some((role: any) => 
+      role.name === 'superadmin' && role.isSuperAdmin === true
+    );
+    console.log('User is superadmin:', isSuperadmin);
+    
+    const allClaims = user.roles?.flatMap((role: any) => {
+      const claims = role.claims?.map((claim: any) => claim.name) || [];
+      return claims;
+    }) || [];
+    
+    const hasManageAnyClaim = allClaims.includes('quotation:manage:any');
+    console.log('User has quotation:manage:any claim:', hasManageAnyClaim);
+    
+    // Superadmin or user with manage:any claim can see all quotations
+    if (isSuperadmin || hasManageAnyClaim) {
+      console.log('Getting all quotations for superadmin or user with manage:any claim');
+      return this.entityManager.find(Quotation, {
+        relations: ['businessSnapshot', 'clientSnapshot', 'items'],
+      });
+    }
+    
+    // Regular user can only see quotations from their business profiles
+    const businessProfileIds = user.businessProfiles?.map(profile => profile.id) || [];
+    console.log('User business profile IDs:', businessProfileIds);
+    
+    if (businessProfileIds.length === 0) {
+      console.log('No business profiles found for user, returning empty array');
+      return [];
+    }
+    
+    console.log('Querying quotations for business profiles:', businessProfileIds);
+    
+    try {
+      const quotations = await this.entityManager.find(Quotation, {
+        where: { 
+          businessProfileId: In(businessProfileIds) 
+        },
+        relations: ['businessSnapshot', 'clientSnapshot', 'items'],
+      });
+      
+      console.log(`Found ${quotations.length} quotations`);
+      return quotations;
+    } catch (error) {
+      console.error('Error querying quotations:', error);
+      throw error;
+    }
   }
 }

@@ -3,6 +3,7 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { EntityManager, QueryFailedError } from 'typeorm';
 import { InjectEntityManager } from '@nestjs/typeorm';
+import { In } from 'typeorm';
 
 import { Invoice, InvoiceStatus } from './entities/invoice.entity';
 import { BusinessProfile } from 'src/business-profile/business-profile.entity';
@@ -499,5 +500,45 @@ async findOne(invoiceId: string): Promise<Invoice> {
     if (res.affected === 0) {
       throw new NotFoundException(`Invoice ${id} not found`);
     }
+  }
+
+  /**
+   * Find all invoices for a user based on their business profiles.
+   * For regular users, this returns only invoices from their business profiles.
+   * For superadmins or users with invoice:manage:any claim, it returns all invoices.
+   */
+  async findInvoicesByUser(user: any): Promise<Invoice[]> {
+    // Check if user is superadmin or has manage:any claim
+    const isSuperadmin = user.roles?.some((role: any) => 
+      role.name === 'superadmin' && role.isSuperAdmin === true
+    );
+    
+    const allClaims = user.roles?.flatMap((role: any) => {
+      const claims = role.claims?.map((claim: any) => claim.name) || [];
+      return claims;
+    }) || [];
+    
+    const hasManageAnyClaim = allClaims.includes('invoice:manage:any');
+    
+    // Superadmin or user with manage:any claim can see all invoices
+    if (isSuperadmin || hasManageAnyClaim) {
+      return this.entityManager.find(Invoice, {
+        relations: ['businessSnapshot', 'clientSnapshot', 'items'],
+      });
+    }
+    
+    // Regular user can only see invoices from their business profiles
+    const businessProfileIds = user.businessProfiles?.map(profile => profile.id) || [];
+    
+    if (businessProfileIds.length === 0) {
+      return [];
+    }
+    
+    return this.entityManager.find(Invoice, {
+      where: { 
+        businessProfileId: In(businessProfileIds) 
+      },
+      relations: ['businessSnapshot', 'clientSnapshot', 'items'],
+    });
   }
 }

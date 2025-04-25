@@ -2,7 +2,7 @@
 
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
-import { EntityManager } from 'typeorm';
+import { EntityManager, In } from 'typeorm';
 
 import { Client } from './client.entity';
 import { BusinessProfile } from '../business-profile/business-profile.entity';
@@ -110,6 +110,67 @@ export class ClientService {
     const result = await this.manager.delete(Client, id);
     if (result.affected === 0) {
       throw new NotFoundException(`Client ${id} not found`);
+    }
+  }
+
+  /**
+   * Find all clients for a user based on their business profiles.
+   * For regular users, this returns only clients from their business profiles.
+   * For superadmins or users with client:manage:any claim, it returns all clients.
+   */
+  async findClientsByUser(user: any): Promise<Client[]> {
+    console.log('findClientsByUser called with user:', JSON.stringify({
+      id: user.id,
+      email: user.email,
+      roles: user.roles?.map(r => ({ name: r.name, isSuperAdmin: r.isSuperAdmin })),
+      businessProfiles: user.businessProfiles?.map(bp => ({ id: bp.id }))
+    }, null, 2));
+    
+    // Check if user is superadmin or has manage:any claim
+    const isSuperadmin = user.roles?.some((role: any) => 
+      role.name === 'superadmin' && role.isSuperAdmin === true
+    );
+    console.log('User is superadmin:', isSuperadmin);
+    
+    const allClaims = user.roles?.flatMap((role: any) => {
+      const claims = role.claims?.map((claim: any) => claim.name) || [];
+      return claims;
+    }) || [];
+    
+    const hasManageAnyClaim = allClaims.includes('client:manage:any');
+    console.log('User has client:manage:any claim:', hasManageAnyClaim);
+    
+    // Superadmin or user with manage:any claim can see all clients
+    if (isSuperadmin || hasManageAnyClaim) {
+      console.log('Getting all clients for superadmin or user with manage:any claim');
+      return this.manager.find(Client);
+    }
+    
+    // Regular user can only see clients from their business profiles
+    const businessProfileIds = user.businessProfiles?.map(profile => profile.id) || [];
+    console.log('User business profile IDs:', businessProfileIds);
+    
+    if (businessProfileIds.length === 0) {
+      console.log('No business profiles found for user, returning empty array');
+      return [];
+    }
+    
+    console.log('Querying clients for business profiles:', businessProfileIds);
+    
+    try {
+      const clients = await this.manager.find(Client, {
+        where: { 
+          businessProfile: { 
+            id: In(businessProfileIds) 
+          } 
+        }
+      });
+      
+      console.log(`Found ${clients.length} clients`);
+      return clients;
+    } catch (error) {
+      console.error('Error querying clients:', error);
+      throw error;
     }
   }
 }

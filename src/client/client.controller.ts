@@ -27,15 +27,18 @@ import { CreateClientDto } from './dtos/create-client.dto';
 import { UpdateClientDto } from './dtos/update-client.dto';
 import { ClientGuard } from './guards/client.guard';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { UserClientsGuard } from './guards/user-clients.guard';
   
   @ApiTags('Clients')
   @ApiBearerAuth('access-token')
   @Controller('clients')
-  @UseGuards(AuthGuard, ClientGuard)
+  @UseGuards(AuthGuard)
   export class ClientController {
     constructor(private readonly service: ClientService) {}
   
     @Post()
+    @UseGuards(ClientGuard)
     @ApiOperation({ summary: 'Create a new client' })
     @ApiBody({ type: CreateClientDto })
     @ApiResponse({
@@ -48,6 +51,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
     }
   
     @Get('profile/:profileId')
+    @UseGuards(ClientGuard)
     @ApiOperation({ summary: 'Get all clients for a business profile' })
     @ApiParam({
       name: 'profileId',
@@ -64,8 +68,21 @@ import { AuthGuard } from 'src/auth/auth.guard';
     ): Promise<Client[]> {
       return this.service.findAllByProfile(profileId);
     }
+
+    @Get('my-clients')
+    @UseGuards(UserClientsGuard)
+    @ApiOperation({ summary: 'Get all clients for the current user based on JWT token' })
+    @ApiResponse({
+      status: 200,
+      description: 'List of clients for the current user.',
+      type: [Client],
+    })
+    async findMyClients(@CurrentUser() user: any): Promise<Client[]> {
+      return this.service.findClientsByUser(user);
+    }
   
     @Get(':id')
+    @UseGuards(ClientGuard)
     @ApiOperation({ summary: 'Get a client by ID' })
     @ApiParam({
       name: 'id',
@@ -83,6 +100,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
     }
   
     @Patch(':id')
+    @UseGuards(ClientGuard)
     @ApiOperation({ summary: 'Update an existing client' })
     @ApiParam({
       name: 'id',
@@ -104,6 +122,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
     }
   
     @Delete(':id')
+    @UseGuards(ClientGuard)
     @ApiOperation({ summary: 'Delete a client' })
     @ApiParam({
       name: 'id',

@@ -37,13 +37,15 @@ import { UpdateInvoiceNumberFormatDto } from './dtos/update-invoice-number-forma
 import { CreateInvoiceNumberFormatDto } from './dtos/create-invoice-number-format.dto';
 import { InvoiceGuard } from './guards/invoice.guard';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { UserInvoicesGuard } from './guards/user-invoices.guard';
 
 import { Response } from 'express';
 // import { InvoicePdfService } from './invoice-pdf-json.service';
 @ApiBearerAuth('access-token')
   @ApiTags('Invoices')
   @Controller('invoices')
-  @UseGuards(AuthGuard, InvoiceGuard)
+  @UseGuards(AuthGuard)
   export class InvoiceController {
     constructor(
       private readonly service: InvoiceService,
@@ -51,6 +53,7 @@ import { Response } from 'express';
     ) {}
 
     @Get(':id/full')
+    @UseGuards(InvoiceGuard)
     @ApiOperation({ summary: 'Get full invoice details' })
     @ApiParam({
       name: 'id',
@@ -68,6 +71,7 @@ import { Response } from 'express';
     }
   //
     @Post()
+    @UseGuards(InvoiceGuard)
     @ApiOperation({ summary: 'Create a new invoice' })
     @ApiBody({ type: CreateInvoiceDto })
     @ApiResponse({
@@ -80,6 +84,7 @@ import { Response } from 'express';
     }
   //
     @Get()
+    @UseGuards(InvoiceGuard)
     @ApiOperation({ summary: 'Get all invoices' })
     @ApiResponse({
       status: 200,
@@ -89,8 +94,21 @@ import { Response } from 'express';
     async findAll(): Promise<Invoice[]> {
       return this.service.findAll();
     }
+  
+    @Get('my-invoices')
+    @UseGuards(UserInvoicesGuard)
+    @ApiOperation({ summary: 'Get all invoices for the current user based on JWT token' })
+    @ApiResponse({
+      status: 200,
+      description: 'List of invoices for the current user.',
+      type: [Invoice],
+    })
+    async findMyInvoices(@CurrentUser() user: any): Promise<Invoice[]> {
+      return this.service.findInvoicesByUser(user);
+    }
   //
     @Get(':id')
+    @UseGuards(InvoiceGuard)
     @ApiOperation({ summary: 'Get an invoice by ID' })
     @ApiParam({
       name: 'id',
@@ -108,6 +126,7 @@ import { Response } from 'express';
     }
   
     @Patch(':id')
+    @UseGuards(InvoiceGuard)
     @ApiOperation({ summary: 'Update an existing invoice' })
     @ApiParam({
       name: 'id',
@@ -129,6 +148,7 @@ import { Response } from 'express';
     }
   
     @Delete(':id')
+    @UseGuards(InvoiceGuard)
     @ApiOperation({ summary: 'Delete an invoice' })
     @ApiParam({
       name: 'id',

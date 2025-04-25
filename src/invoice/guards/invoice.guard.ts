@@ -34,7 +34,7 @@ export class InvoiceGuard implements CanActivate {
 
     // Check for superadmin role
     const isSuperadmin = user.roles?.some((role: any) => {
-      const isSuper = role.name === 'superadmin' || role.isSuperAdmin === true;
+      const isSuper = role.name === 'superadmin' && role.isSuperAdmin === true;
       this.logger.debug(`Checking role ${role.name}: isSuper = ${isSuper}`);
       return isSuper;
     });

@@ -7,54 +7,47 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ClientService } from '../client.service';
+import { BusinessItemService } from '../business-item.service';
 import { BusinessProfileService } from 'src/business-profile/business-profile.service';
 
 @Injectable()
-export class ClientGuard implements CanActivate {
-  private readonly logger = new Logger(ClientGuard.name);
+export class BusinessItemGuard implements CanActivate {
+  private readonly logger = new Logger(BusinessItemGuard.name);
 
   constructor(
-    private readonly clientService: ClientService,
+    private readonly businessItemService: BusinessItemService,
     private readonly businessProfileService: BusinessProfileService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const user = (request as any).user;
-    const clientId = request.params.id;
+    const itemId = request.params.id;
+    const profileId = request.params.profileId;
 
     if (!user) {
       throw new ForbiddenException('Authentication required.');
     }
 
-    // Debug logging
-    this.logger.debug('User object:', JSON.stringify(user, null, 2));
-    this.logger.debug('User roles:', JSON.stringify(user.roles, null, 2));
-
     // Check for superadmin role
     const isSuperadmin = user.roles?.some((role: any) => {
       const isSuper = role.name === 'superadmin' && role.isSuperAdmin === true;
-      this.logger.debug(`Checking role ${role.name}: isSuper = ${isSuper}`);
       return isSuper;
     });
 
-    this.logger.debug('Is superadmin:', isSuperadmin);
+    if (isSuperadmin) {
+      return true;
+    }
 
-    // Check for client:manage:any claim
+    // Check for businessitem:manage:any claim
     const allClaims = user.roles?.flatMap((role: any) => {
       const claims = role.claims?.map((claim: any) => claim.name) || [];
-      this.logger.debug(`Claims for role ${role.name}:`, claims);
       return claims;
     }) || [];
+    
+    const hasManageAnyClaim = allClaims.includes('businessitem:manage:any');
 
-    this.logger.debug('All claims:', allClaims);
-    const hasManageAnyClaim = allClaims.includes('client:manage:any');
-    this.logger.debug('Has manage:any claim:', hasManageAnyClaim);
-
-    // Superadmin or user with manage:any claim can do anything
-    if (isSuperadmin || hasManageAnyClaim) {
-      this.logger.debug('Access granted: superadmin or manage:any claim');
+    if (hasManageAnyClaim) {
       return true;
     }
 
@@ -72,27 +65,42 @@ export class ClientGuard implements CanActivate {
 
       const isOwner = businessProfile.userId === user.id;
       if (!isOwner) {
-        throw new ForbiddenException('You are not allowed to create clients for this business profile.');
+        throw new ForbiddenException('You are not allowed to create business items for this business profile.');
       }
 
       return true;
     }
 
-    // For other operations (GET, PATCH, DELETE) - check client ownership
-    if (clientId) {
-      const client = await this.clientService.findOne(clientId);
-      if (!client) {
-        throw new NotFoundException('Client not found.');
-      }
-
-      const businessProfile = await this.businessProfileService.findOne(client.businessProfile.id);
+    // For GET profile/:profileId - check profile ownership
+    if (profileId) {
+      const businessProfile = await this.businessProfileService.findOne(profileId);
       if (!businessProfile) {
         throw new NotFoundException('Business profile not found.');
       }
 
       const isOwner = businessProfile.userId === user.id;
       if (!isOwner) {
-        throw new ForbiddenException('You are not allowed to manage this client.');
+        throw new ForbiddenException('You are not allowed to view business items for this business profile.');
+      }
+
+      return true;
+    }
+
+    // For other operations (GET, PATCH, DELETE) - check business item ownership
+    if (itemId) {
+      const businessItem = await this.businessItemService.findOne(itemId);
+      if (!businessItem) {
+        throw new NotFoundException('Business item not found.');
+      }
+
+      const businessProfile = await this.businessProfileService.findOne(businessItem.businessProfile.id);
+      if (!businessProfile) {
+        throw new NotFoundException('Business profile not found.');
+      }
+
+      const isOwner = businessProfile.userId === user.id;
+      if (!isOwner) {
+        throw new ForbiddenException('You are not allowed to manage this business item.');
       }
     }
 

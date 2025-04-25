@@ -4,13 +4,14 @@ import { ClientController } from './client.controller';
 import { BusinessProfileModule } from 'src/business-profile/business-profile.module';
 import { UsersModule } from 'src/users/users.module';
 import { ClientGuard } from './guards/client.guard';
+import { UserClientsGuard } from './guards/user-clients.guard';
 
 @Module({
   imports: [
     BusinessProfileModule,
     UsersModule
   ],
-  providers: [ClientService, ClientGuard],
+  providers: [ClientService, ClientGuard, UserClientsGuard],
   controllers: [ClientController],
   exports: [ClientService]
 })

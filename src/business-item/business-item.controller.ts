@@ -10,6 +10,7 @@ import {
     Body,
     HttpCode,
     HttpStatus,
+    UseGuards,
   } from '@nestjs/common';
   import {
     ApiTags,
@@ -24,14 +25,20 @@ import {
   import { BusinessItem } from './business-item.entity';
 import { CreateBusinessItemDto } from './dtos/create-business-item.dto';
 import { UpdateBusinessItemDto } from './dtos/update-business-item.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { BusinessItemGuard } from './guards/business-item.guard';
+import { UserBusinessItemsGuard } from './guards/user-business-items.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
   
   @ApiTags('Business Items')
-  // @ApiBearerAuth() // enable if using authentication
+  @ApiBearerAuth('access-token')
   @Controller('business-items')
+  @UseGuards(AuthGuard)
   export class BusinessItemController {
     constructor(private readonly service: BusinessItemService) {}
   
     @Post()
+    @UseGuards(BusinessItemGuard)
     @ApiOperation({ summary: 'Create a new catalog item' })
     @ApiBody({ type: CreateBusinessItemDto })
     @ApiResponse({ status: 201, description: 'Item created', type: BusinessItem })
@@ -40,6 +47,7 @@ import { UpdateBusinessItemDto } from './dtos/update-business-item.dto';
     }
   
     @Get('profile/:profileId')
+    @UseGuards(BusinessItemGuard)
     @ApiOperation({ summary: 'List all catalog items for a BusinessProfile' })
     @ApiParam({
       name: 'profileId',
@@ -52,8 +60,21 @@ import { UpdateBusinessItemDto } from './dtos/update-business-item.dto';
     ): Promise<BusinessItem[]> {
       return this.service.findAllByProfile(profileId);
     }
+
+    @Get('my-business-items')
+    @UseGuards(UserBusinessItemsGuard)
+    @ApiOperation({ summary: 'Get all business items for the current user based on JWT token' })
+    @ApiResponse({
+      status: 200,
+      description: 'List of business items for the current user.',
+      type: [BusinessItem],
+    })
+    async findMyBusinessItems(@CurrentUser() user: any): Promise<BusinessItem[]> {
+      return this.service.findBusinessItemsByUser(user);
+    }
   
     @Get(':id')
+    @UseGuards(BusinessItemGuard)
     @ApiOperation({ summary: 'Get a single catalog item by ID' })
     @ApiParam({
       name: 'id',
@@ -67,6 +88,7 @@ import { UpdateBusinessItemDto } from './dtos/update-business-item.dto';
     }
   
     @Patch(':id')
+    @UseGuards(BusinessItemGuard)
     @ApiOperation({ summary: 'Update a catalog item' })
     @ApiParam({
       name: 'id',
@@ -84,6 +106,7 @@ import { UpdateBusinessItemDto } from './dtos/update-business-item.dto';
     }
   
     @Delete(':id')
+    @UseGuards(BusinessItemGuard)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Delete a catalog item' })
     @ApiParam({

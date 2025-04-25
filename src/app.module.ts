@@ -26,26 +26,26 @@ import { ClaimsModule } from './claims/claims.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'mysql.railway.internal',
-      port: 3306,
-      username: 'root',
-      password: 'yvKOdIyslhrSNyALWVwIQRKsgadjEQwn',
-      database: 'railway',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
-    }),
-    //  TypeOrmModule.forRoot({
+    // TypeOrmModule.forRoot({
     //   type: 'mysql',
-    //   host: 'localhost',
+    //   host: 'mysql.railway.internal',
     //   port: 3306,
     //   username: 'root',
-    //   password: 'root',
-    //   database: 'project-gigsters',
+    //   password: 'yvKOdIyslhrSNyALWVwIQRKsgadjEQwn',
+    //   database: 'railway',
     //   entities: [__dirname + '/**/*.entity{.ts,.js}'],
     //   synchronize: true,
     // }),
+     TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: 'localhost',
+      port: 3306,
+      username: 'root',
+      password: 'root',
+      database: 'project-gigsters',
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: true,
+    }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

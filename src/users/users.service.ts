@@ -200,7 +200,7 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
       async findOneById(id: string): Promise<User> {
         const user = await this.entityManager.findOne(User, {
           where: { id },
-          relations: ['roles', 'roles.claims'],
+          relations: ['roles', 'roles.claims', 'businessProfiles'],
         });
         if (!user) {
           throw new NotFoundException(`User with ID ${id} not found`);
@@ -213,7 +213,7 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
         const user = await this.entityManager.findOne(User, {
           where: { email },
           select: ['id', 'email', 'password', 'firstName', 'lastName', 'isActive', 'failedLoginAttempts', 'lastFailedLoginAttempt', 'lastActivationEmailSentAt'],
-          relations: ['roles', 'roles.claims'],
+          relations: ['roles', 'roles.claims', 'businessProfiles'],
         });
         return user;
       }

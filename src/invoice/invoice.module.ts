@@ -6,18 +6,22 @@ import { BusinessProfileModule } from 'src/business-profile/business-profile.mod
 import { ClientModule } from 'src/client/client.module';
 import { InvoiceGuard } from './guards/invoice.guard';
 import { UsersModule } from 'src/users/users.module';
+import { BusinessItemModule } from 'src/business-item/business-item.module';
+import { UserInvoicesGuard } from './guards/user-invoices.guard';
 // import { InvoicePdfService } from './invoice-pdf-json.service';
 
 @Module({
   imports: [
     BusinessProfileModule,
     ClientModule,
-    UsersModule
+    UsersModule,
+    BusinessItemModule
   ],
   providers: [
     InvoiceService,
     InvoicePdfService,
-    InvoiceGuard
+    InvoiceGuard,
+    UserInvoicesGuard
   ],
   controllers: [InvoiceController],
   exports: [InvoiceService]
