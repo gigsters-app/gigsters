@@ -1,6 +1,6 @@
 // src/quotation/quotation.service.ts
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectEntityManager }          from '@nestjs/typeorm';
 import { EntityManager }                from 'typeorm';
 
@@ -14,27 +14,32 @@ import { QuotationNumberFormat } from './entities/quotation-number-format.entity
 import { QuotationCounter } from './entities/quotation-counter.entity';
 import { BusinessSnapshot } from './entities/quotation-business-snapshot.entity';
 import { ClientSnapshot } from './entities/quotation-client-snapshot.entity';
+import { InvoiceService } from '../invoice/invoice.service';
+import { Invoice, InvoiceStatus } from '../invoice/entities/invoice.entity';
+import { QuotationToInvoiceDto } from './dtos/quotation-to-invoice.dto';
+import { CreateInvoiceDto } from '../invoice/dtos/create-invoice.dto';
 
 @Injectable()
 export class QuotationService {
   constructor(
     @InjectEntityManager()
-    private readonly em: EntityManager,
+    private readonly entityManager: EntityManager,
+    private readonly invoiceService: InvoiceService,
   ) {}
 
   /**
    * Get or create quotation number format for a business profile
    */
   async getQuotationNumberFormat(businessProfileId: string): Promise<QuotationNumberFormat> {
-    let format = await this.em.findOne(QuotationNumberFormat, {
+    let format = await this.entityManager.findOne(QuotationNumberFormat, {
       where: { businessProfileId },
     });
 
     if (!format) {
-      format = this.em.create(QuotationNumberFormat, {
+      format = this.entityManager.create(QuotationNumberFormat, {
         businessProfileId,
       });
-      format = await this.em.save(format);
+      format = await this.entityManager.save(format);
     }
 
     return format;
@@ -69,7 +74,7 @@ export class QuotationService {
    *  – items (and their optional businessItem)
    */
   async findFull(id: string): Promise<Quotation> {
-    const q = await this.em.findOne(Quotation, {
+    const q = await this.entityManager.findOne(Quotation, {
       where: { id },
       relations: [
         'businessProfile',
@@ -88,7 +93,7 @@ export class QuotationService {
    * Create a new Quotation in a single transaction.
    */
   async create(dto: CreateQuotationDto): Promise<Quotation> {
-    return this.em.transaction(async tx => {
+    return this.entityManager.transaction(async tx => {
       // 1) Get format and counter
       const format = await this.getQuotationNumberFormat(dto.businessProfileId);
       let counter = await tx.findOne(QuotationCounter, {
@@ -215,7 +220,7 @@ export class QuotationService {
    * List all quotations, including related profile, client & items.
    */
   async findAll(): Promise<Quotation[]> {
-    return this.em.find(Quotation, {
+    return this.entityManager.find(Quotation, {
       relations: ['businessProfile', 'client', 'items'],
     });
   }
@@ -224,7 +229,7 @@ export class QuotationService {
    * Fetch one quotation by ID.
    */
   async findOne(id: string): Promise<Quotation> {
-    const q = await this.em.findOne(Quotation, {
+    const q = await this.entityManager.findOne(Quotation, {
       where: { id },
       relations: ['businessProfile', 'client', 'items'],
     });
@@ -236,7 +241,7 @@ export class QuotationService {
    * Update an existing quotation.
    */
   async update(id: string, dto: UpdateQuotationDto): Promise<Quotation> {
-    return this.em.transaction(async tx => {
+    return this.entityManager.transaction(async tx => {
       const repo = tx.getRepository(Quotation);
       let q = await repo.findOne({
         where: { id },
@@ -272,9 +277,74 @@ export class QuotationService {
    * Delete a quotation by ID.
    */
   async remove(id: string): Promise<void> {
-    const res = await this.em.delete(Quotation, id);
+    const res = await this.entityManager.delete(Quotation, id);
     if (res.affected === 0) {
       throw new NotFoundException(`Quotation ${id} not found`);
     }
+  }
+
+  /**
+   * Convert an approved quotation into an invoice
+   */
+  async convertToInvoice(dto: QuotationToInvoiceDto): Promise<Invoice> {
+    // Find the quotation with all relations
+    const quotation = await this.entityManager.findOne(Quotation, {
+      where: { id: dto.quotationId },
+      relations: [
+        'businessProfile',
+        'client',
+        'businessSnapshot',
+        'clientSnapshot',
+        'items',
+      ],
+    });
+
+    if (!quotation) {
+      throw new NotFoundException(`Quotation with ID "${dto.quotationId}" not found.`);
+    }
+
+    // Check if the quotation is in ACCEPTED status
+    if (quotation.status !== QuotationStatus.ACCEPTED) {
+      throw new BadRequestException(
+        `Only accepted quotations can be converted to invoices. Current status: ${quotation.status}`
+      );
+    }
+
+    // We don't need to provide invoiceNumber as it's generated by the invoice service
+    const createInvoiceDto = {
+      businessProfileId: quotation.businessProfileId,
+      title: `Invoice for ${quotation.title}`,
+      issueDate: new Date().toISOString().split('T')[0], // Current date
+      dueDate: this.calculateDueDate(30).toISOString().split('T')[0], // 30 days from now
+      status: InvoiceStatus.PENDING,
+      clientId: quotation.clientId,
+      currency: quotation.currency,
+      taxRate: quotation.taxRate,
+      discount: quotation.discount,
+      notes: quotation.notes,
+      terms: quotation.terms,
+      items: quotation.items.map(item => ({
+        description: item.name,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+    } as CreateInvoiceDto; // Type assertion to resolve the TypeScript error
+
+    // Use the invoice service to create the invoice
+    const invoice = await this.invoiceService.create(createInvoiceDto);
+
+    // Update the quotation status
+    await this.entityManager.update(Quotation, quotation.id, { status: QuotationStatus.INVOICED });
+
+    return invoice;
+  }
+
+  /**
+   * Helper method to calculate due date
+   */
+  private calculateDueDate(daysFromNow: number): Date {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + daysFromNow);
+    return dueDate;
   }
 }

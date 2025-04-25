@@ -78,7 +78,7 @@ export class Invoice {
   discount: number;
 
   @ApiProperty({ description: 'Total amount due', example: 1675.00 })
-  @Column('decimal', { precision: 12, scale: 2 })
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
   total: number;
 
   @ApiProperty({ description: 'Optional notes', example: 'Thank you for your business!', required: false })

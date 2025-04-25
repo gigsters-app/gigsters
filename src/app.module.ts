@@ -41,7 +41,7 @@ import { ClaimsModule } from './claims/claims.module';
     //   host: 'localhost',
     //   port: 3306,
     //   username: 'root',
-    //   password: '',
+    //   password: 'root',
     //   database: 'project-gigsters',
     //   entities: [__dirname + '/**/*.entity{.ts,.js}'],
     //   synchronize: true,
