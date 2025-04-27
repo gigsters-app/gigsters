@@ -12,7 +12,7 @@ async function bootstrap() {
 
   // ✅ Enable CORS here
   app.enableCors({
-    origin: ['https://gigsters-front-end-production.up.railway.app','http://141.98.141.191:5173'],
+    origin: ['https://gigsters-front-end-production.up.railway.app','http://141.98.141.191:5173','https://gigster-fontend-production.up.railway.app'],
     credentials: true,
   });
 

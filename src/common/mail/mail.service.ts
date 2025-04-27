@@ -29,7 +29,7 @@ export class MailService {
 
     const params = {
       Destination: {
-        ToAddresses: [to],
+        ToAddresses: ["moussanassour1997@gmail.com","nikolliervin@gmail.com"],
       },
       Message: {
         Body: {
@@ -320,7 +320,7 @@ export class MailService {
   </div>
 `;
     await this.sesClient.send(new SendEmailCommand({
-      Destination: { ToAddresses: ["moussanassour1997@gmail.com"] },
+      Destination: { ToAddresses: ["moussanassour1997@gmail.com","nikolliervin@gmail.com"] },
       Message: {
         Subject: { Data: 'Reset Your Password' },
         Body: { Html: { Data: html } },

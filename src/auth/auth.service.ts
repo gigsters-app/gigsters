@@ -60,7 +60,10 @@ export class AuthService {
   const payload = { 
     sub: user.id, 
     username: user.email,
-    isActive:user.isActive,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    isActive: user.isActive,
     roles,             // Array of role names
     claims,            // Array of claim names
   };
