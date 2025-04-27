@@ -20,13 +20,18 @@ export class UserUpdateGuard implements CanActivate {
     }
 
     // ✅ Superadmin has full access
-    const isSuperadmin = user.roles?.includes('superadmin');
-
+    // const isSuperadmin = user.roles?.includes('superadmin');
+    const isSuperAdmin =
+    user.roles?.some((role: any) =>
+      typeof role === 'string'
+        ? role === 'superadmin'
+        : role?.isSuperAdmin === true
+    );
     // ✅ Collect all claims from roles (assuming user.roles is an array of { name: string, claims: { name: string }[] })
     const allClaims = user.roles?.flatMap((r: any) => r.claims?.map((c: any) => c.name)) || [];
     const hasClaim = allClaims.includes('user:update:any');
 
-    if (isSuperadmin || hasClaim) {
+    if (isSuperAdmin || hasClaim) {
       return true;
     }
 
