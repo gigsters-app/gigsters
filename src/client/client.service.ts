@@ -21,21 +21,26 @@ export class ClientService {
    */
   async create(dto: CreateClientDto): Promise<Client> {
     return this.manager.transaction(async tx => {
-      // Check if client with this email already exists
-      if (dto.email) {
-        const existingClient = await tx.findOne(Client, {
-          where: { email: dto.email }
-        });
-        if (existingClient) {
-          throw new ConflictException(`A client with email "${dto.email}" already exists.`);
-        }
-      }
-
+      // Get the business profile
       const profile = await tx.findOne(BusinessProfile, {
         where: { id: dto.businessProfileId },
       });
       if (!profile) {
         throw new NotFoundException('BusinessProfile not found');
+      }
+
+      // Check if client with this email already exists under the same business profile
+      if (dto.email) {
+        const existingClient = await tx
+          .createQueryBuilder(Client, 'client')
+          .innerJoin('client.businessProfile', 'bp')
+          .where('client.email = :email', { email: dto.email })
+          .andWhere('bp.id = :profileId', { profileId: profile.id })
+          .getOne();
+        
+        if (existingClient) {
+          throw new ConflictException(`A client with email "${dto.email}" already exists for this business profile.`);
+        }
       }
 
       const client = tx.create(Client, {
@@ -58,7 +63,10 @@ export class ClientService {
    */
   async findAllByProfile(profileId: string): Promise<Client[]> {
     return this.manager.find(Client, {
-      where: { businessProfile: { id: profileId } },
+      relations: ['businessProfile'],
+      where: { 
+        businessProfile: { id: profileId } 
+      },
     });
   }
 
@@ -88,16 +96,39 @@ export class ClientService {
         throw new NotFoundException(`Client ${id} not found`);
       }
 
-      if (dto.businessProfileId) {
-        const profile = await tx.findOne(BusinessProfile, {
+      // Handle business profile change if specified
+      let profile = client.businessProfile;
+      if (dto.businessProfileId && dto.businessProfileId !== profile.id) {
+        const newProfile = await tx.findOne(BusinessProfile, {
           where: { id: dto.businessProfileId },
         });
-        if (!profile) {
+        if (!newProfile) {
           throw new NotFoundException('BusinessProfile not found');
         }
+        profile = newProfile;
+      }
+
+      // If email is being updated, check for uniqueness within the business profile
+      if (dto.email && dto.email !== client.email) {
+        const duplicateCheck = await tx
+          .createQueryBuilder(Client, 'client')
+          .innerJoin('client.businessProfile', 'bp')
+          .where('client.email = :email', { email: dto.email })
+          .andWhere('bp.id = :profileId', { profileId: profile.id })
+          .andWhere('client.id != :id', { id: client.id })
+          .getOne();
+        
+        if (duplicateCheck) {
+          throw new ConflictException(`A client with email "${dto.email}" already exists for this business profile.`);
+        }
+      }
+
+      // Update the businessProfile relationship if necessary
+      if (dto.businessProfileId && dto.businessProfileId !== client.businessProfile.id) {
         client.businessProfile = profile;
       }
 
+      // Update other fields
       tx.merge(Client, client, dto);
       return tx.save(Client, client);
     });
@@ -143,7 +174,9 @@ export class ClientService {
     // Superadmin or user with manage:any claim can see all clients
     if (isSuperadmin || hasManageAnyClaim) {
       console.log('Getting all clients for superadmin or user with manage:any claim');
-      return this.manager.find(Client);
+      return this.manager.find(Client, {
+        relations: ['businessProfile']
+      });
     }
     
     // Regular user can only see clients from their business profiles
@@ -159,6 +192,7 @@ export class ClientService {
     
     try {
       const clients = await this.manager.find(Client, {
+        relations: ['businessProfile'],
         where: { 
           businessProfile: { 
             id: In(businessProfileIds) 

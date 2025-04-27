@@ -8,4 +8,13 @@ export class InvoiceCounter {
 
   @Column('bigint', { default: 0 })
   lastNumber: number;
+
+  @Column({ nullable: true })
+  fiscalYearLabel: string;
+
+  @Column({ type: 'int', nullable: true })
+  fiscalYearStart: number;
+
+  @Column({ type: 'int', nullable: true })
+  fiscalYearEnd: number;
 }

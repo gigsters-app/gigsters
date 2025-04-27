@@ -104,7 +104,10 @@ import {
     clientId: string;
   
     @ApiProperty({ description: 'Client', type: () => Client })
-    @ManyToOne(() => Client, client => client.quotations)
+    @ManyToOne(() => Client, client => client.quotations, {
+      onDelete: 'CASCADE',    // ← when a Client is deleted, its Quotations go too
+      onUpdate: 'CASCADE',
+    })
     @JoinColumn({ name: 'clientId' })
     client: Client;
   

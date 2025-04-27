@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Param, Post, Query, Render } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, Param, Post, Query, Render, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiBadRequestResponse, ApiBody, ApiCreatedResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SignInDto } from './DTOs/signin.dto';
@@ -11,6 +11,8 @@ import { JwtService } from '@nestjs/jwt';
 import { MailService } from 'src/common/mail/mail.service';
 import { RegisterDto } from 'src/users/DTOs/register.dto';
 import { CreateUserDto } from 'src/users/DTOs/create-user.dto';
+import { getBaseUrl } from 'src/common/utils/app-url.util';
+import { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -54,8 +56,17 @@ export class AuthController {
     })
     @ApiResponse({ status: 200, description: 'Account activated successfully' })
     @ApiResponse({ status: 400, description: 'Invalid or expired activation token' })
-    async activateAccount(@Query('token') token: string) {
-      return this.authService.activateUserAccount(token);
+    async activateAccount(@Query('token') token: string, @Res() res: Response) {
+      try {
+        // Attempt to activate the account
+        const result = await this.authService.activateUserAccount(token);
+        
+        // Redirect to success page
+        return res.redirect('/auth/activate-success');
+      } catch (error) {
+        // If activation fails, redirect to error page
+        return res.redirect('/auth/activate-error');
+      }
     }
 
     @Public()
@@ -130,7 +141,8 @@ export class AuthController {
 
         const token = this.authService.generateResetToken(user.id);
 
-        const resetLink = `https://gigsters-production.up.railway.app/auth/reset-password?token=${token}`;
+        const baseUrl = getBaseUrl();
+        const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
         await this.mailService.sendPasswordResetEmail(user.email, resetLink);
         
         return { message: 'If an account with that email exists, a password reset link has been sent.' };
@@ -199,5 +211,26 @@ export class AuthController {
       return this.mailService.sendTestEmail();
     }
 
- 
+    @Public()
+    @Get('activate-success')
+    @Render('activation-success') // will use views/activation-success.hbs
+    activationSuccessPage() {
+      return { 
+        title: 'Account Activated',
+        message: 'Your account has been successfully activated!',
+        loginUrl: `${process.env.FRONTEND_URL || 'https://gigsters-production.up.railway.app'}/auth/login`
+      };
+    }
+    
+    @Public()
+    @Get('activate-error')
+    @Render('activation-error') // will use views/activation-error.hbs
+    activationErrorPage() {
+      return { 
+        title: 'Activation Failed',
+        message: 'We could not activate your account. The link may be expired or invalid.',
+        resendUrl: `${process.env.FRONTEND_URL || 'https://gigsters-production.up.railway.app'}/auth/resend-activation`
+      };
+    }
+
 }

@@ -62,4 +62,29 @@ export class UpdateInvoiceNumberFormatDto {
   @IsBoolean()
   @IsOptional()
   isCustomFormat?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether to use fiscal year instead of calendar year',
+    example: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  useFiscalYear?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Format for representing fiscal year (e.g., "FY23" for 2022-2023)',
+    example: 'FY{YY}',
+  })
+  @IsString()
+  @MaxLength(10)
+  @IsOptional()
+  fiscalYearFormat?: string;
+
+  @ApiPropertyOptional({
+    description: 'Reset counter when fiscal year changes',
+    example: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  resetCounterWithFiscalYear?: boolean;
 } 

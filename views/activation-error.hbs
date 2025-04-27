@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{title}}</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .container {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-top: 50px;
+    }
+    
+    h1 {
+      color: #e63946;
+      margin-bottom: 20px;
+    }
+    
+    .error-icon {
+      color: #e63946;
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    
+    .message {
+      margin-bottom: 30px;
+      font-size: 18px;
+    }
+    
+    .btn {
+      display: inline-block;
+      background-color: #0070f3;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    
+    .btn:hover {
+      background-color: #0051a2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="error-icon">❌</div>
+    <h1>{{title}}</h1>
+    <p class="message">{{message}}</p>
+    <a href="{{resendUrl}}" class="btn">Resend Activation Email</a>
+  </div>
+</body>
+</html> 

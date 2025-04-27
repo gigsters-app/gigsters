@@ -111,20 +111,171 @@ async findOne(invoiceId: string): Promise<Invoice> {
   private generateInvoiceNumber(
     format: InvoiceNumberFormat,
     counter: InvoiceCounter,
+    businessProfile: BusinessProfile,
+    issueDate: Date
   ): string {
-    const year = new Date().getFullYear();
+    // Determine which year to use
+    let year = issueDate.getFullYear();
+    let yearRepresentation = String(year);
+    
+    if (format.useFiscalYear && businessProfile.fiscalYearStartMonth) {
+      // Get fiscal year label
+      const fiscalYearInfo = this.getFiscalYearInfo(issueDate, businessProfile);
+      
+      // Use the fiscal year format
+      if (format.fiscalYearFormat) {
+        yearRepresentation = this.formatFiscalYear(
+          fiscalYearInfo.start, 
+          fiscalYearInfo.end, 
+          format.fiscalYearFormat
+        );
+      }
+      
+      // Update counter if fiscal year changed
+      if (format.resetCounterWithFiscalYear && 
+          counter.fiscalYearLabel && 
+          counter.fiscalYearLabel !== fiscalYearInfo.label) {
+        counter.lastNumber = format.startNumber;
+      }
+      
+      // Update the fiscal year info in the counter
+      counter.fiscalYearLabel = fiscalYearInfo.label;
+      counter.fiscalYearStart = fiscalYearInfo.start;
+      counter.fiscalYearEnd = fiscalYearInfo.end;
+    }
+    
     const paddedNumber = String(counter.lastNumber).padStart(format.paddingDigits, '0');
     
     let invoiceNumber = `${format.prefix}${format.separator}`;
     
-    // Always include year for default format, optional for custom
+    // Include year for default format or if explicitly configured
     if (format.includeYear || !format.isCustomFormat) {
-      invoiceNumber += `${year}${format.yearSeparator}`;
+      invoiceNumber += `${yearRepresentation}${format.yearSeparator}`;
     }
     
     invoiceNumber += paddedNumber;
     
     return invoiceNumber;
+  }
+
+  /**
+   * Get fiscal year information based on a date and business profile settings
+   */
+  private getFiscalYearInfo(date: Date, businessProfile: BusinessProfile): { 
+    label: string; 
+    start: number; 
+    end: number;
+    current: boolean;
+  } {
+    // Default to calendar year if fiscal year settings are not complete
+    if (!businessProfile.fiscalYearStartMonth || 
+        !businessProfile.fiscalYearStartDay || 
+        !businessProfile.fiscalYearEndMonth || 
+        !businessProfile.fiscalYearEndDay) {
+      const year = date.getFullYear();
+      return {
+        label: `FY${year}`,
+        start: year,
+        end: year,
+        current: true
+      };
+    }
+    
+    const currentYear = date.getFullYear();
+    const currentMonth = date.getMonth() + 1; // JavaScript months are 0-indexed
+    const currentDay = date.getDate();
+    
+    // Determine if the fiscal year spans across calendar years
+    const isFiscalYearCrossesYear = 
+      businessProfile.fiscalYearStartMonth > businessProfile.fiscalYearEndMonth ||
+      (businessProfile.fiscalYearStartMonth === businessProfile.fiscalYearEndMonth && 
+       businessProfile.fiscalYearStartDay > businessProfile.fiscalYearEndDay);
+    
+    let fiscalYearStart: number;
+    let fiscalYearEnd: number;
+    
+    // Check if current date is in the latter part of the fiscal year
+    const isInLatterPartOfFiscalYear = 
+      (currentMonth < businessProfile.fiscalYearStartMonth) ||
+      (currentMonth === businessProfile.fiscalYearStartMonth && 
+       currentDay < businessProfile.fiscalYearStartDay);
+    
+    if (isFiscalYearCrossesYear) {
+      // For fiscal years like Apr 1, 2023 - Mar 31, 2024
+      if (isInLatterPartOfFiscalYear) {
+        fiscalYearStart = currentYear - 1;
+        fiscalYearEnd = currentYear;
+      } else {
+        fiscalYearStart = currentYear;
+        fiscalYearEnd = currentYear + 1;
+      }
+    } else {
+      // For fiscal years within the same calendar year, like Jan 1, 2023 - Dec 31, 2023
+      fiscalYearStart = currentYear;
+      fiscalYearEnd = currentYear;
+    }
+    
+    const label = `FY${fiscalYearStart}-${fiscalYearEnd}`;
+    
+    // Determine if the current date is within this fiscal year
+    const isCurrent = this.isDateInFiscalYear(
+      date, 
+      fiscalYearStart,
+      businessProfile.fiscalYearStartMonth,
+      businessProfile.fiscalYearStartDay,
+      fiscalYearEnd,
+      businessProfile.fiscalYearEndMonth,
+      businessProfile.fiscalYearEndDay
+    );
+    
+    return {
+      label,
+      start: fiscalYearStart,
+      end: fiscalYearEnd,
+      current: isCurrent
+    };
+  }
+  
+  /**
+   * Check if a date falls within a fiscal year
+   */
+  private isDateInFiscalYear(
+    date: Date,
+    fiscalYearStart: number,
+    startMonth: number,
+    startDay: number,
+    fiscalYearEnd: number,
+    endMonth: number,
+    endDay: number
+  ): boolean {
+    const dateYear = date.getFullYear();
+    const dateMonth = date.getMonth() + 1;
+    const dateDay = date.getDate();
+    
+    // Create date objects for the start and end of the fiscal year
+    const fiscalYearStartDate = new Date(fiscalYearStart, startMonth - 1, startDay);
+    const fiscalYearEndDate = new Date(fiscalYearEnd, endMonth - 1, endDay);
+    
+    return date >= fiscalYearStartDate && date <= fiscalYearEndDate;
+  }
+  
+  /**
+   * Format a fiscal year string based on the specified format
+   */
+  private formatFiscalYear(startYear: number, endYear: number, format: string): string {
+    const startYearStr = String(startYear);
+    const endYearStr = String(endYear);
+    const startYearShort = startYearStr.substring(2);
+    const endYearShort = endYearStr.substring(2);
+    
+    // Replace placeholders in the format
+    let result = format
+      .replace('{YYYY-YYYY}', `${startYearStr}-${endYearStr}`)
+      .replace('{YYYY}', startYearStr)
+      .replace('{YY-YY}', `${startYearShort}-${endYearShort}`)
+      .replace('{YY}', startYearShort);
+    
+    return result;
   }
 
   async create(dto: CreateInvoiceDto): Promise<Invoice> {
@@ -147,9 +298,6 @@ async findOne(invoiceId: string): Promise<Invoice> {
         }
         await manager.save(counter);
 
-        // ── B) Generate invoiceNumber ───────────────────────────
-        const generatedInvoiceNumber = this.generateInvoiceNumber(format, counter);
-
         // ── 1) Load and validate BusinessProfile ────────────────────
         const businessProfile = await manager.findOne(BusinessProfile, {
           where: { id: dto.businessProfileId },
@@ -159,6 +307,14 @@ async findOne(invoiceId: string): Promise<Invoice> {
             `Business profile "${dto.businessProfileId}" not found.`
           );
         }
+
+        // ── B) Generate invoiceNumber ───────────────────────────
+        const generatedInvoiceNumber = this.generateInvoiceNumber(
+          format, 
+          counter, 
+          businessProfile, 
+          new Date(dto.issueDate)
+        );
 
         // ── 2) Load or create Client ───────────────────────────────
         let client: Client;

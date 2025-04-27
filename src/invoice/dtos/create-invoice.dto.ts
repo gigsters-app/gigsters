@@ -52,20 +52,22 @@ export class CreateInvoiceDto {
 
   @ApiProperty({
     description: 'Human‑readable title or subject of the invoice',
-    example: 'Web Dev Services – May 2025',
+    example: 'Web Dev Services – May 2025',
   })
   @IsString()
   title: string;
 
   @ApiProperty({
-    description: 'Unique invoice number/code',
+    description: 'Unique invoice number/code (auto-generated if not provided)',
     example: 'INV-2025-0001',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  invoiceNumber: string;
+  invoiceNumber?: string;
 
   @ApiProperty({
-    description: 'Date the invoice is issued (ISO 8601 date)',
+    description: 'Date the invoice is issued (ISO 8601 date)',
     format: 'date',
     example: '2025-05-01',
   })
@@ -73,7 +75,7 @@ export class CreateInvoiceDto {
   issueDate: string;
 
   @ApiProperty({
-    description: 'Due date for payment (ISO 8601 date)',
+    description: 'Due date for payment (ISO 8601 date)',
     format: 'date',
     example: '2025-05-15',
   })
@@ -90,7 +92,7 @@ export class CreateInvoiceDto {
   status?: InvoiceStatus;
 
   @ApiPropertyOptional({
-    description: 'Currency (ISO 4217 code)',
+    description: 'Currency (ISO 4217 code)',
     example: 'USD',
     default: 'USD',
   })
@@ -130,7 +132,7 @@ export class CreateInvoiceDto {
 
   @ApiPropertyOptional({
     description: 'Payment terms or T&C text',
-    example: 'Net 30 days',
+    example: 'Net 30 days',
   })
   @IsString()
   @IsOptional()
@@ -144,7 +146,7 @@ export class CreateInvoiceDto {
     minItems: 1,
     example: [
       { description: 'Logo design services', quantity: 2, unitPrice: 150.5 },
-      { description: 'Website hosting (6 months)', quantity: 6, unitPrice: 10 },
+      { description: 'Website hosting (6 months)', quantity: 6, unitPrice: 10 },
     ],
   })
   @IsArray()

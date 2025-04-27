@@ -219,7 +219,10 @@ import { Response } from 'express';
     }
 
     @Post('number-format/:businessProfileId')
-    @ApiOperation({ summary: 'Create initial invoice number format for a business profile' })
+    @ApiOperation({ 
+      summary: 'Create initial invoice number format for a business profile', 
+      description: 'Creates a new invoice number format configuration for a business profile. Supports fiscal year configuration for custom invoice numbers based on your fiscal year calendar.' 
+    })
     @ApiParam({ name: 'businessProfileId', type: 'string', format: 'uuid' })
     @ApiBody({ type: CreateInvoiceNumberFormatDto })
     @ApiOkResponse({ description: 'Returns the created invoice number format' })

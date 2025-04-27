@@ -11,6 +11,7 @@ import { BusinessProfile } from 'src/business-profile/business-profile.entity';
 import { MailService } from 'src/common/mail/mail.service';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './DTOs/register.dto';
+import { getBaseUrl } from 'src/common/utils/app-url.util';
 
 @Injectable()
 export class UsersService {
@@ -85,7 +86,8 @@ if (!defaultRole) {
         { sub: saved.id, email: saved.email },
         { secret: process.env.ACTIVATION_JWT_SECRET, expiresIn: '24h' }
       );
-      const link = `${process.env.FRONTEND_URL}/auth/activate?token=${token}`;
+      const baseUrl = getBaseUrl();
+      const link = `${baseUrl}/auth/activate?token=${token}`;
       await this.emailService.sendActivationEmail(saved.email, link);
 
       return saved;
@@ -185,7 +187,8 @@ const activationToken = this.jwtService.sign(
 );
 
 // 📧 Send activation email
-const activationLink = `https://gigsters-production.up.railway.app/auth/activate?token=${activationToken}`;
+const baseUrl = getBaseUrl();
+const activationLink = `${baseUrl}/auth/activate?token=${activationToken}`;
 
 await this.emailService.sendActivationEmail(savedUser.email, activationLink);
 
@@ -246,4 +249,30 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
         return await this.entityManager.save(User, user);
       }
       
+      async findMyProfile(userId: string): Promise<Partial<User>> {
+        const user = await this.entityManager.findOne(User, {
+          where: { id: userId },
+          relations: ['businessProfiles'],
+        });
+        
+        if (!user) {
+          throw new NotFoundException(`User with ID ${userId} not found`);
+        }
+        
+        // Create a clean version without sensitive/unnecessary fields
+        const { 
+          password, 
+          isActive, 
+          lastActivationEmailSentAt, 
+          failedLoginAttempts, 
+          lastFailedLoginAttempt, 
+          deletedAt, 
+          roles,
+          createdAt,
+          updatedAt,
+          ...cleanUser 
+        } = user;
+        
+        return cleanUser;
+      }
 }

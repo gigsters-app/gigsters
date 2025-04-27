@@ -121,6 +121,22 @@ import { Quotation } from 'src/quotation/quotation.entity';
     @Column({ nullable: true })
     bankCountry?: string;
 
+    @ApiProperty({ required: false, description: 'Fiscal year start month (1-12)', example: 4 })
+    @Column({ type: 'int', default: 1, nullable: true })
+    fiscalYearStartMonth?: number;
+
+    @ApiProperty({ required: false, description: 'Fiscal year start day (1-31)', example: 1 })
+    @Column({ type: 'int', default: 1, nullable: true })
+    fiscalYearStartDay?: number;
+
+    @ApiProperty({ required: false, description: 'Fiscal year end month (1-12)', example: 3 })
+    @Column({ type: 'int', default: 12, nullable: true })
+    fiscalYearEndMonth?: number;
+
+    @ApiProperty({ required: false, description: 'Fiscal year end day (1-31)', example: 31 })
+    @Column({ type: 'int', default: 31, nullable: true })
+    fiscalYearEndDay?: number;
+
       /**
    * Indicates whether the business profile is active.
    * Set to `false` to disable the profile without deleting it.

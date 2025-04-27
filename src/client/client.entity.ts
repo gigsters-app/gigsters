@@ -7,12 +7,16 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     OneToMany,
+    Index,
+    JoinColumn,
+    Unique
   } from 'typeorm';
   import { BusinessProfile } from '../business-profile/business-profile.entity';
 import { Quotation } from 'src/quotation/quotation.entity';
 import { ApiProperty } from '@nestjs/swagger';
   
   @Entity()
+  @Index(['email', 'businessProfile'], { unique: true, where: "email IS NOT NULL" })
   export class Client {
     @ApiProperty({ description: 'Primary key as UUID' })
     @PrimaryGeneratedColumn('uuid')
@@ -27,7 +31,7 @@ import { ApiProperty } from '@nestjs/swagger';
     contactName?: string;      // e.g. the person to address invoices to
   
     @ApiProperty({ description: 'Email address', required: false })
-    @Column({ nullable: true, unique: true })
+    @Column({ nullable: true })
     email?: string;
   
     @ApiProperty({ description: 'Phone number', required: false })
@@ -48,6 +52,7 @@ import { ApiProperty } from '@nestjs/swagger';
   
     @ApiProperty({ description: 'Business profile', type: () => BusinessProfile })
     @ManyToOne(() => BusinessProfile, bp => bp.clients, { onDelete: 'CASCADE' })
+    @JoinColumn()
     businessProfile: BusinessProfile;
     
     @ApiProperty({ description: 'Quotations', type: () => [Quotation] })

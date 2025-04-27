@@ -32,7 +32,10 @@ import { UsersService } from 'src/users/users.service';
     constructor(private readonly businessProfileService: BusinessProfileService, private readonly userService: UsersService) {}
   
     @Post()
-    @ApiOperation({ summary: 'Create a new business profile (admin/superadmin only)' })
+    @ApiOperation({ 
+      summary: 'Create a new business profile',
+      description: 'Creates a new business profile with the provided details. You can specify fiscal year settings to customize invoice numbering based on your company\'s fiscal year.' 
+    })
     create(@Body() dto: CreateBusinessProfileDto) {
       return this.businessProfileService.create(dto);
     }
@@ -41,6 +44,7 @@ import { UsersService } from 'src/users/users.service';
     @ApiOperation({ summary: 'Register a business profile for the authenticated user' })
     register(@Body() dto: CreateBusinessProfileDto, @Req() req) {
       this.logger.debug('User from request:', req.user);
+      console.log(req.user);
       if (!req.user || !req.user.id) {
         throw new ForbiddenException('User not found in request');
       }
@@ -56,7 +60,7 @@ import { UsersService } from 'src/users/users.service';
     @Get('my-profile')
     @ApiOperation({ summary: 'Get the authenticated user\'s business profile' })
     findMyProfile(@Req() req) {
-      return this.userService.findOneById(req.user.id);
+      return this.userService.findMyProfile(req.user.id);
     }
   
     @Get(':id')

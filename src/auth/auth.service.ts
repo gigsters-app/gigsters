@@ -6,6 +6,8 @@ import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from 'src/common/mail/mail.service';
 import { User } from 'src/users/user.entity';
+import { getBaseUrl } from 'src/common/utils/app-url.util';
+
 @Injectable()
 export class AuthService {
     constructor(private usersService: UsersService,private jwtService: JwtService ,private readonly configService: ConfigService, private readonly userService: UsersService,   private readonly mailService: MailService,
@@ -132,7 +134,8 @@ export class AuthService {
           }
         );
       
-        const activationLink = `https://gigsters-production.up.railway.app/auth/activate?token=${token}`;
+        const baseUrl = getBaseUrl();
+        const activationLink = `${baseUrl}/auth/activate?token=${token}`;
         await this.mailService.sendActivationEmail(user.email, activationLink);
       
         // Update timestamp
@@ -180,7 +183,8 @@ export class AuthService {
           },
         );
       
-        const resetLink = `https://gigsters-production.up.railway.app/auth/reset-password?token=${token}`;
+        const baseUrl = getBaseUrl();
+        const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
         await this.mailService.sendForcePasswordResetEmail(user.email, resetLink);
       }
       

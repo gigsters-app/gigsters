@@ -163,6 +163,30 @@ export class CreateBusinessProfileDto {
   @MaxLength(50)
   bankCountry?: string;
 
+  @ApiProperty({ required: false, description: 'Fiscal year start month (1-12)', example: 4 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  fiscalYearStartMonth?: number;
+
+  @ApiProperty({ required: false, description: 'Fiscal year start day (1-31)', example: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  fiscalYearStartDay?: number;
+
+  @ApiProperty({ required: false, description: 'Fiscal year end month (1-12)', example: 3 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  fiscalYearEndMonth?: number;
+
+  @ApiProperty({ required: false, description: 'Fiscal year end day (1-31)', example: 31 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  fiscalYearEndDay?: number;
+
   @ApiProperty({ required: false, description: 'User who last updated the profile (for internal use)', example: 'admin@gigsters.app' })
   @IsOptional()
   @IsString()

@@ -54,4 +54,26 @@ export class InvoiceNumberFormat {
   })
   @Column({ type: 'boolean', default: false })
   isCustomFormat: boolean;
+
+  @ApiProperty({
+    description: 'Whether to use fiscal year instead of calendar year',
+    example: false,
+  })
+  @Column({ type: 'boolean', default: false })
+  useFiscalYear: boolean;
+
+  @ApiProperty({
+    description: 'Format for representing fiscal year (e.g., "FY23" for 2022-2023)',
+    example: 'FY{YY}',
+    required: false,
+  })
+  @Column({ length: 10, nullable: true, default: 'FY{YY}' })
+  fiscalYearFormat?: string;
+
+  @ApiProperty({
+    description: 'Reset counter when fiscal year changes',
+    example: true,
+  })
+  @Column({ type: 'boolean', default: true })
+  resetCounterWithFiscalYear: boolean;
 } 

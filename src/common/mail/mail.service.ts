@@ -196,7 +196,7 @@ export class MailService {
 
     const command = new SendEmailCommand({
       Destination: {
-        ToAddresses: ["moussanassour1997@gmail.com"],
+        ToAddresses: ["moussanassour1997@gmail.com","nikolliervin@gmail.com"],
       },
       Message: {
         Subject: { Data: subject },

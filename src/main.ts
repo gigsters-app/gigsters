@@ -5,6 +5,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import * as hbs from 'hbs';
+import { RequestInfoInterceptor } from './common/interceptors/request-info.interceptor';
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
@@ -13,6 +15,9 @@ async function bootstrap() {
     origin: ['https://gigsters-front-end-production.up.railway.app','http://141.98.141.191:5173'],
     credentials: true,
   });
+
+  // Apply the RequestInfoInterceptor globally
+  app.useGlobalInterceptors(new RequestInfoInterceptor());
 
   setupSwagger(app);
   setupGlobalPipes(app);
