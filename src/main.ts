@@ -9,7 +9,10 @@ import { RequestInfoInterceptor } from './common/interceptors/request-info.inter
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-
+  app.use((req, _, next) => {
+    console.log('→ Incoming Origin:', req.headers.origin);
+    next();
+  });
   // ✅ Enable CORS here
   app.enableCors({
     origin: ['https://gigsters-front-end-production.up.railway.app','http://141.98.141.191:5173','https://gigster-fontend-production.up.railway.app'],
