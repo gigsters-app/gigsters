@@ -62,8 +62,8 @@ if (!defaultRole) {
   async registerBasicUser(dto: RegisterDto): Promise<User> {
     const { email, password } = dto;
 
-    // check if email exists
-    if (await this.entityManager.findOne(User, { where: { email } })) {
+    // check if email exists, including soft-deleted users
+    if (await this.entityManager.findOne(User, { where: { email }, withDeleted: true })) {
       throw new BadRequestException('Email already in use');
     }
 
@@ -107,8 +107,8 @@ if (!defaultRole) {
       ...profileData
     } = dto;
 
-    // 1. Check if user email exists
-    const userExists = await this.entityManager.findOne(User, { where: { email } });
+    // 1. Check if user email exists, including soft-deleted users
+    const userExists = await this.entityManager.findOne(User, { where: { email }, withDeleted: true });
     if (userExists) {
       throw new BadRequestException('User email is already in use');
     }
