@@ -19,7 +19,7 @@ import { AclGuard } from './acl/acl.guard';
 import { AuthGuard } from './auth/auth.guard';
 import { RolesModule } from './roles/roles.module';
 import { ClaimsModule } from './claims/claims.module';
-
+import { AclModule } from './acl/acl.module';
 
 @Module({
   imports: [
@@ -68,6 +68,7 @@ import { ClaimsModule } from './claims/claims.module';
     BusinessItemModule,
     RolesModule,
     ClaimsModule,
+    AclModule,
   ],
   controllers: [AppController],
   providers: [
