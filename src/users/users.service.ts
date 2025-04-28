@@ -223,6 +223,14 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
     
       async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
         const user = await this.findOneById(id);
+        
+        // Handle password hashing if password is provided in the DTO
+        if (updateUserDto.password) {
+          const saltRounds = 10;
+          const hashedPassword = await bcrypt.hash(updateUserDto.password, saltRounds);
+          updateUserDto.password = hashedPassword;
+        }
+        
         this.entityManager.merge(User, user, updateUserDto);
         return this.entityManager.save(user);
       }
