@@ -1,12 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { SwaggerModule, DocumentBuilder, OpenAPIObject } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import * as hbs from 'hbs';
 import { RequestInfoInterceptor } from './common/interceptors/request-info.interceptor';
-
+import { dump } from 'js-yaml';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // app.use((req, _, next) => {
@@ -53,6 +53,15 @@ function setupSwagger(app) {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+    // convert to YAML
+    const yaml = dump(document, { noRefs: true });
+
+    // serve the raw YAML at /docs.yaml
+    app.getHttpAdapter().get('/docs.yaml', (req, res) => {
+      res
+        .type('application/x-yaml')
+        .send(yaml);
+    });
   SwaggerModule.setup('api', app, document);
 }
 
@@ -67,3 +76,5 @@ function setupGlobalPipes(app) {
 }
 
 bootstrap();
+
+

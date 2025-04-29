@@ -141,9 +141,9 @@ import { Quotation } from 'src/quotation/quotation.entity';
    * Indicates whether the business profile is active.
    * Set to `false` to disable the profile without deleting it.
    */
-  @ApiProperty({ description: 'Flag indicating if the profile is active', default: true })
-  @Column({ default: true })
-  isActive: boolean;
+    @ApiProperty({ description: 'Flag indicating if the profile is active', default: true })
+    @Column({ default: true })
+    isActive: boolean;
   
     @CreateDateColumn({ type: 'timestamp' })
     createdAt: Date;
