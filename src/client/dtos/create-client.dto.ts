@@ -71,3 +71,59 @@ export class CreateClientDto {
   @IsString()
   vatNumber?: string;
 }
+
+export class CreateClientWithoutProfileDto {
+  @ApiProperty({
+    description: 'Client name (company or individual)',
+    example: 'Acme Corp',
+  })
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({
+    description: 'Contact person name',
+    example: 'John Doe',
+  })
+  @IsOptional()
+  @IsString()
+  contactName?: string;
+
+  @ApiPropertyOptional({
+    description: 'Client email address',
+    example: 'john.doe@acme.com',
+  })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({
+    description: 'Client phone number',
+    example: '+1-555-1234',
+  })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiProperty({
+    description: 'Client country',
+    example: 'USA',
+  })
+  @IsString()
+  country: string;
+
+  @ApiPropertyOptional({
+    description: 'Client full address',
+    example: '123 Main St, Anytown, CA 12345',
+  })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiPropertyOptional({
+    description: 'Client VAT number, if applicable',
+    example: 'VAT123456',
+  })
+  @IsOptional()
+  @IsString()
+  vatNumber?: string;
+}

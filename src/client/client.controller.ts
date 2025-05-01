@@ -29,6 +29,7 @@ import { ClientGuard } from './guards/client.guard';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserClientsGuard } from './guards/user-clients.guard';
+import { CreateClientWithoutProfileDto } from './dtos/create-client.dto';
   
   @ApiTags('Clients')
   @ApiBearerAuth('access-token')
@@ -48,6 +49,22 @@ import { UserClientsGuard } from './guards/user-clients.guard';
     })
     async create(@Body() dto: CreateClientDto): Promise<Client> {
       return this.service.create(dto);
+    }
+  
+    @Post('my-profile')
+    @UseGuards(UserClientsGuard)
+    @ApiOperation({ summary: 'Create a new client using the current user\'s business profile' })
+    @ApiBody({ type: CreateClientWithoutProfileDto })
+    @ApiResponse({
+      status: 201,
+      description: 'The client has been successfully created under the user\'s business profile.',
+      type: Client,
+    })
+    async createWithUserProfile(
+      @Body() dto: CreateClientWithoutProfileDto,
+      @CurrentUser() user: any
+    ): Promise<Client> {
+      return this.service.createWithUserProfile(dto, user.id);
     }
   
     @Get('profile/:profileId')

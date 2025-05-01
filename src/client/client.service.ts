@@ -6,7 +6,7 @@ import { EntityManager, In } from 'typeorm';
 
 import { Client } from './client.entity';
 import { BusinessProfile } from '../business-profile/business-profile.entity';
-import { CreateClientDto } from './dtos/create-client.dto';
+import { CreateClientDto, CreateClientWithoutProfileDto } from './dtos/create-client.dto';
 import { UpdateClientDto } from './dtos/update-client.dto';
 
 @Injectable()
@@ -27,6 +27,49 @@ export class ClientService {
       });
       if (!profile) {
         throw new NotFoundException('BusinessProfile not found');
+      }
+
+      // Check if client with this email already exists under the same business profile
+      if (dto.email) {
+        const existingClient = await tx
+          .createQueryBuilder(Client, 'client')
+          .innerJoin('client.businessProfile', 'bp')
+          .where('client.email = :email', { email: dto.email })
+          .andWhere('bp.id = :profileId', { profileId: profile.id })
+          .getOne();
+        
+        if (existingClient) {
+          throw new ConflictException(`A client with email "${dto.email}" already exists for this business profile.`);
+        }
+      }
+
+      const client = tx.create(Client, {
+        name: dto.name,
+        contactName: dto.contactName,
+        email: dto.email,
+        phone: dto.phone,
+        country: dto.country,
+        address: dto.address,
+        vatNumber: dto.vatNumber,
+        businessProfile: profile,
+      });
+
+      return tx.save(Client, client);
+    });
+  }
+
+  /**
+   * Create a new Client using the user's business profile.
+   */
+  async createWithUserProfile(dto: CreateClientWithoutProfileDto, userId: string): Promise<Client> {
+    return this.manager.transaction(async tx => {
+      // Get the user's business profile
+      const profile = await tx.findOne(BusinessProfile, {
+        where: { userId: userId },
+      });
+      
+      if (!profile) {
+        throw new NotFoundException('No business profile found for this user');
       }
 
       // Check if client with this email already exists under the same business profile

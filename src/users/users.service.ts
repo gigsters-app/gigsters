@@ -197,7 +197,9 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
   }
     
       async findAll(): Promise<User[]> {
-        return this.entityManager.find(User);
+        return this.entityManager.find(User, {
+          relations: ['roles', 'roles.claims']
+        });
       }
     
       async findOneById(id: string): Promise<User> {
