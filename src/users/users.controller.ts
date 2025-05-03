@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards, NotFoundException } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards, NotFoundException, Query } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./DTOs/create-user.dto";
 import { UpdateUserDto } from "./DTOs/update-user.dto";
@@ -8,6 +8,7 @@ import { Roles } from "src/roles/roles.decorator";
 import { Claims } from "src/claims/claims.decorator";
 import { UserUpdateGuard } from "./guards/user-update.guard";
 import { Public } from "src/auth/decorators/public.decorator";
+import { PaginationDto, PaginatedResponseDto } from './DTOs/pagination.dto';
 
 @ApiBearerAuth('access-token') // name must match the one in addBearerAuth
 @ApiTags('Users')
@@ -27,11 +28,15 @@ export class UserController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Retrieve all users' })
-  @ApiResponse({ status: 200, description: 'List of users retrieved successfully.', type: [User] })
+  @ApiOperation({ summary: 'Retrieve all users with pagination' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'List of users retrieved successfully.', 
+    type: PaginatedResponseDto 
+  })
   @Claims('user:read:all')
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() paginationDto: PaginationDto): Promise<PaginatedResponseDto<User>> {
+    return this.userService.findAll(paginationDto);
   }
 
   @Get(':id')

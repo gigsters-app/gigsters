@@ -12,6 +12,7 @@ import { MailService } from 'src/common/mail/mail.service';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './DTOs/register.dto';
 import { getBaseUrl } from 'src/common/utils/app-url.util';
+import { PaginationDto, PaginatedResponseDto } from './DTOs/pagination.dto';
 
 @Injectable()
 export class UsersService {
@@ -196,10 +197,32 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
     });
   }
     
-      async findAll(): Promise<User[]> {
-        return this.entityManager.find(User, {
-          relations: ['roles', 'roles.claims']
+      async findAll(paginationDto: PaginationDto): Promise<PaginatedResponseDto<User>> {
+        const { page = 1, limit = 10 } = paginationDto;
+        const skip = (page - 1) * limit;
+
+        const [items, total] = await this.entityManager.findAndCount(User, {
+          relations: ['roles', 'roles.claims'],
+          skip,
+          take: limit,
+          order: {
+            createdAt: 'DESC' // Order by creation date, newest first
+          }
         });
+
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPreviousPage = page > 1;
+
+        return {
+          items,
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage,
+          hasPreviousPage
+        };
       }
     
       async findOneById(id: string): Promise<User> {
