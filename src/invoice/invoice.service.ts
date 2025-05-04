@@ -131,17 +131,15 @@ async findOne(invoiceId: string): Promise<Invoice> {
         );
       }
       
-      // Update counter if fiscal year changed
-      if (format.resetCounterWithFiscalYear && 
-          counter.fiscalYearLabel && 
-          counter.fiscalYearLabel !== fiscalYearInfo.label) {
-        counter.lastNumber = format.startNumber;
-      }
+      // The counter reset logic is now handled in the create method
+      // to ensure it happens before incrementing
       
-      // Update the fiscal year info in the counter
-      counter.fiscalYearLabel = fiscalYearInfo.label;
-      counter.fiscalYearStart = fiscalYearInfo.start;
-      counter.fiscalYearEnd = fiscalYearInfo.end;
+      // Update the fiscal year info in the counter if not already set
+      if (!counter.fiscalYearLabel) {
+        counter.fiscalYearLabel = fiscalYearInfo.label;
+        counter.fiscalYearStart = fiscalYearInfo.start;
+        counter.fiscalYearEnd = fiscalYearInfo.end;
+      }
     }
     
     const paddedNumber = String(counter.lastNumber).padStart(format.paddingDigits, '0');
@@ -287,17 +285,7 @@ async findOne(invoiceId: string): Promise<Invoice> {
           where: { businessProfileId: dto.businessProfileId },
           lock: { mode: 'pessimistic_write' },
         });
-
-        if (!counter) {
-          counter = manager.create(InvoiceCounter, {
-            businessProfileId: dto.businessProfileId,
-            lastNumber: format.startNumber,
-          });
-        } else {
-          counter.lastNumber++;
-        }
-        await manager.save(counter);
-
+        
         // ── 1) Load and validate BusinessProfile ────────────────────
         const businessProfile = await manager.findOne(BusinessProfile, {
           where: { id: dto.businessProfileId },
@@ -307,6 +295,43 @@ async findOne(invoiceId: string): Promise<Invoice> {
             `Business profile "${dto.businessProfileId}" not found.`
           );
         }
+
+        // Initialize counter if it doesn't exist yet
+        if (!counter) {
+          counter = manager.create(InvoiceCounter, {
+            businessProfileId: dto.businessProfileId,
+            lastNumber: format.startNumber,
+          });
+        }
+
+        // Check for fiscal year change before incrementing
+        if (format.useFiscalYear && businessProfile.fiscalYearStartMonth) {
+          const fiscalYearInfo = this.getFiscalYearInfo(new Date(dto.issueDate), businessProfile);
+          
+          // For the first invoice ever, use the configured startNumber
+          if (!counter.fiscalYearLabel) {
+            counter.lastNumber = format.startNumber;
+            counter.fiscalYearLabel = fiscalYearInfo.label;
+            counter.fiscalYearStart = fiscalYearInfo.start;
+            counter.fiscalYearEnd = fiscalYearInfo.end;
+          } 
+          // For fiscal year change, always reset to 1
+          else if (format.resetCounterWithFiscalYear && counter.fiscalYearLabel !== fiscalYearInfo.label) {
+            counter.lastNumber = 1; // Always reset to 1 for new fiscal years
+            counter.fiscalYearLabel = fiscalYearInfo.label;
+            counter.fiscalYearStart = fiscalYearInfo.start;
+            counter.fiscalYearEnd = fiscalYearInfo.end;
+          } else {
+            // Only increment if not resetting
+            counter.lastNumber++;
+          }
+        } else {
+          // If not using fiscal year, just increment
+          counter.lastNumber++;
+        }
+        
+        // Save the counter with updated values
+        await manager.save(counter);
 
         // ── B) Generate invoiceNumber ───────────────────────────
         const generatedInvoiceNumber = this.generateInvoiceNumber(
