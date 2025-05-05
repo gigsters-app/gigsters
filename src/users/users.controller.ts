@@ -27,6 +27,14 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
+  @Get('my-profile')
+  @ApiOperation({ summary: 'Get authenticated user profile' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved successfully.', type: User })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async getMyProfile(@Req() req) {
+    return this.userService.findMyProfile(req.user.id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Retrieve all users with pagination' })
   @ApiResponse({ 
