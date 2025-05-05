@@ -285,7 +285,6 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
       async findMyProfile(userId: string): Promise<Partial<User>> {
         const user = await this.entityManager.findOne(User, {
           where: { id: userId },
-          relations: ['businessProfiles'],
         });
         
         if (!user) {
@@ -295,14 +294,13 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
         // Create a clean version without sensitive/unnecessary fields
         const { 
           password, 
-          isActive, 
           lastActivationEmailSentAt, 
           failedLoginAttempts, 
           lastFailedLoginAttempt, 
           deletedAt, 
           roles,
-          createdAt,
           updatedAt,
+          businessProfiles,
           ...cleanUser 
         } = user;
         
