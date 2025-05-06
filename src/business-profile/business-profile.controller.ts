@@ -60,7 +60,7 @@ import { UsersService } from 'src/users/users.service';
     @Get('my-profile')
     @ApiOperation({ summary: 'Get the authenticated user\'s business profile' })
     findMyProfile(@Req() req) {
-      return this.userService.findMyProfile(req.user.id);
+      return this.businessProfileService.findByUserId(req.user.id);
     }
   
     @Get(':id')
