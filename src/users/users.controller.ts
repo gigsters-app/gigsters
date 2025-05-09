@@ -2,13 +2,14 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPi
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./DTOs/create-user.dto";
 import { UpdateUserDto } from "./DTOs/update-user.dto";
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { User } from "./user.entity";
 import { Roles } from "src/roles/roles.decorator";
 import { Claims } from "src/claims/claims.decorator";
 import { UserUpdateGuard } from "./guards/user-update.guard";
 import { Public } from "src/auth/decorators/public.decorator";
 import { PaginationDto, PaginatedResponseDto } from './DTOs/pagination.dto';
+import { UserSearchDto } from "./DTOs/user-search.dto";
 
 @ApiBearerAuth('access-token') // name must match the one in addBearerAuth
 @ApiTags('Users')
@@ -45,6 +46,19 @@ export class UserController {
   @Claims('user:read:all')
   findAll(@Query() paginationDto: PaginationDto): Promise<PaginatedResponseDto<User>> {
     return this.userService.findAll(paginationDto);
+  }
+
+  @Get('role-user')
+  @ApiOperation({ summary: 'Get all users with role "user" with search and pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of users with role "user" retrieved successfully.',
+    type: PaginatedResponseDto
+  })
+  @ApiQuery({ type: UserSearchDto })
+  @Claims('user:read:all')
+  findAllUsersWithRoleUser(@Query() searchDto: UserSearchDto): Promise<PaginatedResponseDto<User>> {
+    return this.userService.findAllUsersWithRoleUser(searchDto);
   }
 
   @Get(':id')

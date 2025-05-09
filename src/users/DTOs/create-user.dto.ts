@@ -4,9 +4,10 @@ import {
     MinLength, 
     MaxLength, 
     IsOptional, 
-    IsBoolean 
+    IsBoolean, 
+    IsUUID
   } from 'class-validator';
-  import { ApiProperty } from '@nestjs/swagger';
+  import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
   
   export class CreateUserDto {
     @ApiProperty({ example: 'user@example.com' })
@@ -18,6 +19,7 @@ import {
     @MinLength(6)
     @MaxLength(50)
     password: string;
+    
   
     @ApiProperty({ example: 'John', required: false })
     @IsOptional()
@@ -35,5 +37,14 @@ import {
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
+
+     @ApiPropertyOptional({
+    description: 'UUID of the role to assign (if omitted, defaults to USER)',
+    type: String,
+    format: 'uuid',
+    })
+    @IsUUID()
+    @IsOptional()
+    roleId?: string;
   }
   

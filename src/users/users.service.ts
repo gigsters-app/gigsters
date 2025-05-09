@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
-import { EntityManager } from 'typeorm';
+import { EntityManager, ILike } from 'typeorm';
 import { CreateUserDto } from './DTOs/create-user.dto';
 import { User } from './user.entity';
 import { UpdateUserDto } from './DTOs/update-user.dto';
@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './DTOs/register.dto';
 import { getBaseUrl } from 'src/common/utils/app-url.util';
 import { PaginationDto, PaginatedResponseDto } from './DTOs/pagination.dto';
+import { UserSearchDto } from './DTOs/user-search.dto';
 
 @Injectable()
 export class UsersService {
@@ -25,38 +26,63 @@ export class UsersService {
 
       
 
-     async create(createUserDto: CreateUserDto): Promise<User> {
-    const existingUser = await this.entityManager.findOne(User, {
-      where: { email: createUserDto.email },
-      withDeleted: true, // Checks even soft-deleted users
-    });
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const {
+      email,
+      password: plainPassword,
+      firstName,
+      lastName,
+      isActive,
+      roleId: suppliedRoleId,
+    } = createUserDto;
 
-    if (existingUser) {
-      throw new ConflictException(`User with email ${createUserDto.email} already exists.`);
+    // 1. Prevent duplicate emails (including soft-deleted)
+    const existing = await this.entityManager.findOne(User, {
+      where: { email },
+      withDeleted: true,
+    });
+    if (existing) {
+      throw new ConflictException(`A user with email "${email}" already exists.`);
     }
 
-     // Hash and salt password
-     const saltRounds = 10;
-     const hashedPassword = await bcrypt.hash(createUserDto.password, saltRounds);
-     
-     // Replace plaintext password with hashed password
-     const userToCreate = {
-       ...createUserDto,
-       password: hashedPassword,
-     };
-     const user = this.entityManager.create(User, userToCreate);
- // 4. Fetch the "USER" role from the database
- const defaultRole = await this.entityManager.findOne(Role, {
-  where: { name: 'USER' },
-});
-if (!defaultRole) {
-  throw new InternalServerErrorException('Default "USER" role not found.');
-}
+    // 2. Hash the password
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-// 5. Assign the user to the USER role
-//    (Since it's a ManyToMany, roles is an array)
-    user.roles = [defaultRole];
-     
+    // 3. Create your User instance, now including optional DTO fields
+    const user = this.entityManager.create(User, {
+      email,
+      password: hashedPassword,
+      firstName,    // ← if undefined, falls back to NULL
+      lastName,     // ← ditto
+      isActive,     // ← if undefined, falls back to the column default
+    });
+
+    // 4. Decide which roleId to use
+    let roleToAssignId = suppliedRoleId;
+    if (roleToAssignId) {
+      // Validate the client-supplied role exists
+      const valid = await this.entityManager.exists(Role, {
+        where: { id: roleToAssignId },
+      });
+      if (!valid) {
+        throw new BadRequestException(`Role "${roleToAssignId}" does not exist.`);
+      }
+    } else {
+      // Fetch only the PK for the default “USER” role
+      const defaultRole = await this.entityManager.findOne(Role, {
+        where: { name: 'USER' },
+        select: { id: true },
+      });
+      if (!defaultRole) {
+        throw new InternalServerErrorException('Default "USER" role not found.');
+      }
+      roleToAssignId = defaultRole.id;
+    }
+
+    // 5. Attach exactly one role stub (by id) to the ManyToMany
+    user.roles = [{ id: roleToAssignId } as Role];
+
+    // 6. Save User + join-table entry in one go
     return this.entityManager.save(user);
   }
   // 1) Basic user registration
@@ -305,5 +331,67 @@ await this.emailService.sendActivationEmail(savedUser.email, activationLink);
         } = user;
         
         return cleanUser;
+      }
+
+      async findAllUsersWithRoleUser(searchDto: UserSearchDto): Promise<PaginatedResponseDto<User>> {
+        const { page = 1, limit = 10, email, firstName, lastName, search } = searchDto;
+        const skip = (page - 1) * limit;
+
+        // Build the where conditions
+        let whereConditions: any = {};
+        
+        // Add specific field filters if provided
+        if (email) {
+          whereConditions.email = ILike(`%${email}%`);
+        }
+        
+        if (firstName) {
+          whereConditions.firstName = ILike(`%${firstName}%`);
+        }
+        
+        if (lastName) {
+          whereConditions.lastName = ILike(`%${lastName}%`);
+        }
+        
+        // Create query builder to join with roles
+        const queryBuilder = this.entityManager.createQueryBuilder(User, 'user')
+          .leftJoinAndSelect('user.roles', 'role')
+          .where('role.name = :roleName', { roleName: 'user' });
+
+        // Add search across multiple fields if provided
+        if (search) {
+          queryBuilder.andWhere(
+            '(user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
+            { search: `%${search}%` }
+          );
+        }
+        
+        // Add specific field conditions from above
+        Object.keys(whereConditions).forEach(key => {
+          queryBuilder.andWhere(`user.${key} LIKE :${key}`, { [key]: whereConditions[key] });
+        });
+        
+        // Apply pagination
+        queryBuilder
+          .skip(skip)
+          .take(limit)
+          .orderBy('user.createdAt', 'DESC');
+        
+        // Execute the query
+        const [items, total] = await queryBuilder.getManyAndCount();
+        
+        const totalPages = Math.ceil(total / limit);
+        const hasNextPage = page < totalPages;
+        const hasPreviousPage = page > 1;
+        
+        return {
+          items,
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage,
+          hasPreviousPage
+        };
       }
 }
