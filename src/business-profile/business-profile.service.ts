@@ -58,6 +58,48 @@ export class BusinessProfileService {
       throw new ConflictException('You already have a business profile.');
     }
 
+    // Check for unique field duplications
+    const duplicateFields: string[] = [];
+
+    // Check legalName
+    const existingLegalName = await this.em.findOne(BusinessProfile, { where: { legalName: dto.legalName } });
+    if (existingLegalName) {
+      duplicateFields.push('legalName');
+    }
+
+    // Check mobile
+    const existingMobile = await this.em.findOne(BusinessProfile, { where: { mobile: dto.mobile } });
+    if (existingMobile) {
+      duplicateFields.push('mobile');
+    }
+
+    // Check vatNumber
+    const existingVatNumber = await this.em.findOne(BusinessProfile, { where: { vatNumber: dto.vatNumber } });
+    if (existingVatNumber) {
+      duplicateFields.push('vatNumber');
+    }
+
+    // Check phone if provided
+    if (dto.phone) {
+      const existingPhone = await this.em.findOne(BusinessProfile, { where: { phone: dto.phone } });
+      if (existingPhone) {
+        duplicateFields.push('phone');
+      }
+    }
+
+    // Check licenseNumber if provided
+    if (dto.licenseNumber) {
+      const existingLicenseNumber = await this.em.findOne(BusinessProfile, { where: { licenseNumber: dto.licenseNumber } });
+      if (existingLicenseNumber) {
+        duplicateFields.push('licenseNumber');
+      }
+    }
+
+    // If any duplicates found, throw a specific exception
+    if (duplicateFields.length > 0) {
+      throw new ConflictException(`The following business profile fields are already in use: ${duplicateFields.join(', ')}`);
+    }
+
     try {
       return this.em.transaction(async manager => {
         // Create profile with user's ID
@@ -86,6 +128,16 @@ export class BusinessProfileService {
       });
     } catch (err) {
       this.logger.error('Failed to create business profile:', err);
+      
+      // Additional error handling for database constraints
+      if (err.code === '23505') { // PostgreSQL unique constraint violation
+        const match = err.detail.match(/Key \((.+?)\)=/);
+        if (match) {
+          const field = match[1];
+          throw new ConflictException(`The ${field} is already in use.`);
+        }
+      }
+      
       throw new BadRequestException('Failed to create business profile. Please check the provided data.');
     }
   }
